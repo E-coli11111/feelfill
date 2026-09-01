@@ -1,0 +1,7 @@
+.fillfeel-root { position: fixed; right: 20px; bottom: 20px; z-index: 2147483647; display: grid; justify-items: end; gap: 10px; color: #18212f; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.fillfeel-card { width: 230px; padding: 16px; border: 1px solid #e0d9f5; border-radius: 14px; background: white; box-shadow: 0 14px 40px #1d15334d; }
+.fillfeel-card strong { color: #4f378b; font-size: 15px; }
+.fillfeel-card p { margin: 6px 0 0; color: #667085; font-size: 13px; line-height: 1.5; }
+.fillfeel-button { width: 48px; height: 48px; border: 0; border-radius: 50%; color: white; background: #6750a4; box-shadow: 0 8px 24px #4f378b66; font: 800 18px/1 Inter, ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.fillfeel-button:hover { background: #4f378b; transform: translateY(-1px); }
+
