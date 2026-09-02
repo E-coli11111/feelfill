@@ -8,6 +8,13 @@ import { ChatXAI } from "@langchain/xai";
 
 import type { LLMConfig } from "@/src/types/llm";
 
+/**
+ * Creates a LangChain chat model for the configured language model provider.
+ *
+ * @param config Provider credentials and generation settings.
+ * @returns A chat model configured for the selected provider.
+ * @throws If the selected provider is unsupported.
+ */
 export function createLLMProvider(
   config: LLMConfig,
 ): BaseChatModel {
@@ -21,6 +28,7 @@ export function createLLMProvider(
         topP: config.top_p,
         frequencyPenalty: config.frequency_penalty,
         presencePenalty: config.presence_penalty,
+        useResponsesApi: true
       });
     case "anthropic":
       return new ChatAnthropic({
@@ -33,7 +41,7 @@ export function createLLMProvider(
       });
     case "google":
       return new ChatGoogle({
-        model: config.model_name,
+        model: config.model_name ?? "gemini-3.7-flash",
         apiKey: config.api_key,
         endpoint: config.base_url,
         temperature: config.temperature,
