@@ -8,11 +8,9 @@ export default defineBackground(() => {
   browser.runtime.onMessage.addListener((message: unknown) => {
     if (
       typeof message === 'object' &&
-      message !== null &&
-      'type' in message &&
-      message.type === 'PING'
+      message !== null
     ) {
-      return Promise.resolve({ message: 'Background 已连接' });
+      
     }
   });
 });
