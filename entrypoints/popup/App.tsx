@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import Switch from '@/src/components/switch';
+import Uploader from '@/src/components/uploader';
 
 export default function App() {
   const [enabled, setEnabled] = useState(true);
@@ -23,24 +25,39 @@ export default function App() {
     await browser.storage.local.set({ enabled: next });
   }
 
+  /*
+  * Fill input element in current webpage with the provided file.
+  */
+  async function fillInputElement(files: File[]) {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (!tab.id) {
+      console.error('No active tab found');
+      return;
+    }
+
+    const result = await browser.tabs.sendMessage(tab.id, {
+      type: 'GET_PAGE_HTML',
+    });
+
+    const html = result.html;
+
+    await browser.runtime.sendMessage({
+      type: 'FILL',
+      html,
+      files,
+    });
+  }
+
   return (
     <main>
       <div className="brand">FillFeel</div>
-      <h1>扩展已经准备好了</h1>
-      <p className="description">这是一个 WXT + React + TypeScript 模板。</p>
-
-      <button className={enabled ? 'toggle enabled' : 'toggle'} onClick={toggleEnabled}>
-        <span>{enabled ? '已启用' : '已停用'}</span>
-        <span className="switch" aria-hidden="true" />
-      </button>
-
-      <div className="footer">
-        <span className="dot" />
-        {status}
-        <button className="link" onClick={() => void browser.runtime.openOptionsPage()}>
-          设置
-        </button>
-      </div>
+      <Switch enabled={enabled} onChange={toggleEnabled} text="启用扩展" />
+      {enabled && <Uploader 
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        text="上传文件"
+        onChange={fillInputElement}
+      />}
+      
     </main>
   );
 }

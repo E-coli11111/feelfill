@@ -8,7 +8,7 @@ import { buildParseDocumentPrompt, buildParseHtmlPrompt } from "./prompt";
 import { createLLMProvider } from "./provider";
 
 /**
- * Uses the configured language model to identify fillable fields in webpage HTML.
+ * Uses LLM to identify fillable fields in webpage HTML.
  *
  * @param html The webpage HTML snapshot to analyze.
  * @returns The message returned by the language model.
@@ -26,14 +26,14 @@ export async function parseHTMLField(html: string) {
 }
 
 /**
- * Uses the configured language model to extract requested webpage field values from a document.
+ * Uses LLM to extract requested webpage field values from a document.
  *
  * @param field Definitions of the webpage fields to extract from the document.
- * @param file The user-provided document or image to analyze.
+ * @param files The user-provided documents or images to analyze.
  * @returns The message returned by the language model.
  * @throws If the configured provider does not support document parsing.
  */
-export async function parseDocumentField(field: ParsedInputFieldResult, file: File) {
+export async function parseDocumentField(field: ParsedInputFieldResult, files: File[]) {
   const stored = await browser.storage.local.get("llmConfig");
   const llmConfig = stored.llmConfig as LLMConfig;
 
@@ -45,16 +45,20 @@ export async function parseDocumentField(field: ParsedInputFieldResult, file: Fi
   const prompt = buildParseDocumentPrompt(field);
 
   // Handle file input
-  const base64File = await fileAsBase64(file);
-  const mimeType = file.type || "application/octet-stream";
-  const attachmentType = mimeType.startsWith("image/") ? "image" as const : "file" as const;
+  const attachments = [];
+  for (const file of files) {
+    const base64File = await fileAsBase64(file);
+    const mimeType = file.type || "application/octet-stream";
+    const attachmentType = mimeType.startsWith("image/") ? "image" as const : "file" as const;
 
-  const attachment = {
-    type: attachmentType,
-    data: base64File,
-    mimeType,
-    metadata: { filename: file.name },
-  };
+    const attachment = {
+      type: attachmentType,
+      data: base64File,
+      mimeType,
+      metadata: { filename: file.name },
+    };
+    attachments.push(attachment);
+  }
 
   // TODO: Structure output
   const response = await llmProvider.invoke([
@@ -65,7 +69,7 @@ export async function parseDocumentField(field: ParsedInputFieldResult, file: Fi
           type: "text",
           text: "以下是用户提供的文档，请根据提示提取指定字段：",
         },
-        attachment
+        ...attachments
       ]
     }),
   ]);
