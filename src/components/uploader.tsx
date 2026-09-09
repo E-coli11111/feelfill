@@ -15,7 +15,7 @@ export default function Uploader({
 }: UploaderProps) {
   return (
     <label
-      className={`group flex min-h-[120px] w-full flex-col items-center justify-center gap-[8px] rounded-[8px] border-2 border-dashed px-[20px] py-[24px] text-center transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 ${
+      className={`group flex min-h-[156px] w-full flex-col items-center justify-center gap-[8px] rounded-[16px] border border-dashed px-[20px] py-[24px] text-center transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 ${
         disabled
           ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
           : 'cursor-pointer border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:bg-blue-50/50'
@@ -23,12 +23,14 @@ export default function Uploader({
     >
       <input
         type="file"
+        aria-label={text}
         accept={accept}
         disabled={disabled}
         multiple={multiple}
         className="sr-only"
         onChange={(event) => {
           onChange(Array.from(event.currentTarget.files ?? []));
+          event.currentTarget.value = '';
         }}
       />
 

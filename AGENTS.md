@@ -76,7 +76,7 @@ feelfill/
 - `LOCATE` 消息调用 `parseHTMLField`，并返回模型消息的文本。
 - `FILL` 消息调用 `parseDocumentField`，但仍返回“暂未实现填充功能”。
 - `SET` 分支尚未实现。
-- 当前没有处理 Popup 发送的 `PING` 消息。
+- 当前没有处理 `PING` 消息；Popup 不再发送该消息。
 - Background 是 Manifest V3 Service Worker；不要依赖长期驻留的内存状态。
 
 ### Popup
@@ -84,9 +84,9 @@ feelfill/
 `entrypoints/popup/`：
 
 - 读取并切换 `browser.storage.local.enabled`。
-- 加载时发送 `PING`，但 Background 当前没有对应处理分支。
-- 启用时显示文件上传组件。
-- 选择文件后向活动标签页发送 `GET_PAGE_HTML`，再向 Background 发送 `FILL`；这套消息名称和负载与共享消息类型、Content Script 当前逻辑尚未一致。
+- 使用浅色卡片与蓝色强调，默认宽度 360px，窄视口收缩；开启后显示文件选择框。
+- 开关读取与保存期间禁用操作，失败时显示提示；通过 `browser.runtime.openOptionsPage()` 打开设置。
+- 选择文件后显示文件名，仅保存在当前 Popup 内存中，关闭开关时清空；尚未接入解析与填充，不发送文件或页面消息。
 - Popup 关闭后 React 内存状态会丢失；需要持久化的状态应放入扩展存储。
 
 ### Options
@@ -121,12 +121,12 @@ feelfill/
 
 修复对应问题后，应同步删除或更新本节：
 
-- `npm run compile` 当前不能通过：`entrypoints/content/index.tsx` 中的 `schema` 是隐式 `any`；`entrypoints/popup/App.tsx` 中活动标签页可能为 `undefined`。
-- Popup、Background 和 Content Script 的消息协议不一致，包括 `PING`、`GET_PAGE_HTML`、`FILL_PAGE` 及 `FILL` 负载。
+- `npm run compile` 当前不能通过：`entrypoints/content/index.tsx` 中的 `schema` 是隐式 `any`。
+- Popup 尚未接入 Background 和 Content Script 的填充消息协议，后续需统一 `FILL_PAGE` 及 `FILL` 的负载。
 - `File[]` 是否能按预期通过扩展消息传输尚未验证；确定协议时优先采用明确、可序列化且有共享类型的 DTO。
 - 页面字段识别、文件字段提取和实际 DOM 填充尚未形成完整闭环。
 - Content React UI 与 `enabled` 动态开关尚未接入。
-- 第一阶段测试基础设施已经建立；当前 LLM Service 测试位于 `tests/service/llm/index.test.ts`。
+- 测试基础设施已经建立；LLM Service 测试位于 `tests/service/llm/index.test.ts`，Popup 交互测试位于 `tests/entrypoints/popup/`，共享组件测试位于 `tests/components/`。
 
 仓库可能包含用户未提交的修改。不要覆盖、回退或格式化与当前任务无关的改动。
 
