@@ -7,6 +7,7 @@ import { ChatOpenRouter } from "@langchain/openrouter";
 import { ChatXAI } from "@langchain/xai";
 
 import type { LLMConfig } from "@/src/types/llm";
+import { createOpenAICodexChatModel } from "./openai-codex";
 
 /**
  * Creates a LangChain chat model for the configured language model provider.
@@ -30,6 +31,8 @@ export function createLLMProvider(
         presencePenalty: config.presence_penalty,
         useResponsesApi: true
       });
+    case "openai-codex":
+      return createOpenAICodexChatModel(config);
     case "anthropic":
       return new ChatAnthropic({
         model: config.model_name,
@@ -83,6 +86,6 @@ export function createLLMProvider(
           : undefined,
       });
     default:
-      throw new Error(`Unsupported LLM provider: ${String(config.provider)}`);;
+      throw new Error(`Unsupported LLM provider: ${String(config.provider)}`);
   }
 }

@@ -1,6 +1,6 @@
 import './style.css';
 
-import type { ContentRequest, ContentResponse } from '@/src/types/message';
+import type { BackgroundResponse, ContentRequest, ContentResponse } from '@/src/types/message';
 
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
@@ -8,7 +8,7 @@ export default defineContentScript({
   async main(ctx) {
     // Get html snapshot of the current webpage
     const html = document.documentElement.outerHTML;
-    let schema = null;
+    let schema: BackgroundResponse | null = null;
 
     const handleMessage = async (message: ContentRequest): Promise<ContentResponse> => {
       switch (message.type) {

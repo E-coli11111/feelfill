@@ -12,5 +12,6 @@ export default defineConfig({
     name: 'FillFeel',
     description: 'A React + TypeScript browser extension starter built with WXT.',
     permissions: ['storage'],
+    host_permissions: ['https://chatgpt.com/*'],
   },
 });

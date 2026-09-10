@@ -1,5 +1,6 @@
 export type LLMProvider =
     | 'openai'
+    | 'openai-codex'
     | 'anthropic'
     | 'google'
     | 'openrouter'
@@ -18,4 +19,12 @@ export interface LLMConfig {
     top_p?: number;
     frequency_penalty?: number;
     presence_penalty?: number;
+}
+
+/** Storage contract for serialized provider authentication credentials. */
+export interface BaseAuthStorage {
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string): Promise<void>;
+    remove(key: string): Promise<void>;
+    list(): Promise<string[]>;
 }

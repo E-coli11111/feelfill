@@ -112,7 +112,9 @@ feelfill/
 ### LLM 服务
 
 - LLM 配置从 `browser.storage.local.llmConfig` 读取。
-- Provider 工厂支持 OpenAI、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint。
+- Provider 工厂支持 OpenAI、OpenAI Codex、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint。
+- OpenAI Codex Provider 使用 LangChain Responses API 适配 `https://chatgpt.com/backend-api/codex/responses`；`llmConfig.api_key` 必须是 Codex OAuth access token，Provider 会从 JWT 提取 `chatgpt_account_id`。OAuth 登录和刷新流程尚未接入。
+- `BrowserAuthStorage` 使用带 `llmAuth:` 前缀的独立 `browser.storage.local` 条目保存序列化凭据，并提供读取、写入、删除和枚举操作。
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
 - Prompt 已包含把网页和文档内容视为不可信数据的约束。
 - 模型响应当前仍以原始 LangChain 消息返回，尚未使用 Zod 做结构化解析和运行时校验。
@@ -121,7 +123,6 @@ feelfill/
 
 修复对应问题后，应同步删除或更新本节：
 
-- `npm run compile` 当前不能通过：`entrypoints/content/index.tsx` 中的 `schema` 是隐式 `any`。
 - Popup 尚未接入 Background 和 Content Script 的填充消息协议，后续需统一 `FILL_PAGE` 及 `FILL` 的负载。
 - `File[]` 是否能按预期通过扩展消息传输尚未验证；确定协议时优先采用明确、可序列化且有共享类型的 DTO。
 - 页面字段识别、文件字段提取和实际 DOM 填充尚未形成完整闭环。
