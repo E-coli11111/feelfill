@@ -1,4 +1,4 @@
-import type { BaseAuthStorage } from '@/src/types/llm';
+import type { BaseAuthStorage } from '@/src/types/auth';
 
 /** Prefix used to isolate authentication entries from other extension storage. */
 export const AUTH_STORAGE_PREFIX = 'llmAuth:';

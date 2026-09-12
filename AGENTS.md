@@ -41,8 +41,9 @@ feelfill/
 │     ├─ App.tsx             # 已存在但尚未由 Content Script 挂载
 │     └─ style.css
 ├─ src/
-│  ├─ components/            # 当前包含 Switch、Uploader
-│  ├─ service/llm/           # LLM 调用、Provider 创建和 Prompt 构建
+│  ├─ components/            # 所有 React 组件；按功能子目录组织
+│  ├─ hooks/                 # react hooks；按功能子目录组织
+│  ├─ services/llm/          # LLM 调用、Provider 创建和 Prompt 构建
 │  ├─ types/                 # 文档、LLM 配置和消息类型
 │  ├─ utils/                 # 当前包含文件 Base64 转换
 │  └─ constants.ts           # 当前为空
@@ -58,9 +59,9 @@ feelfill/
 
 创建新目录时遵循以下职责：
 
-- 两个或更多入口复用的 React 组件放在 `src/components/`。
-- 共享 Hooks 放在 `src/hooks/`；目录不存在时可按需创建。
-- 共享类型放在 `src/types/`。
+- 核心复杂 React 组件放在 `src/components/`按照功能子目录组织.
+- 所有可复用 React hooks 放在 `src/hooks/` ，不可复用的 hooks 放在对应的组件目录下 `hooks.ts`。
+- 所有类型声明放在 `src/types/`。
 - 无状态、无副作用的纯函数放在 `src/utils/`。
 - 涉及 `browser.*`、存储、消息或远程请求的代码放在 `src/service/`；当前目录名是单数 `service`，不要同时创建 `src/services/`。
 - 只服务于单个入口的组件或辅助代码放在对应的 `entrypoints/<name>/` 附近。
@@ -84,7 +85,7 @@ feelfill/
 `entrypoints/popup/`：
 
 - 读取并切换 `browser.storage.local.enabled`。
-- 使用浅色卡片与蓝色强调，默认宽度 360px，窄视口收缩；开启后显示文件选择框。
+- 使用 shadcn/ui 默认浅色主题和卡片布局，默认宽度 360px，窄视口收缩；开启后显示文件选择框和已选附件卡片。
 - 开关读取与保存期间禁用操作，失败时显示提示；通过 `browser.runtime.openOptionsPage()` 打开设置。
 - 选择文件后显示文件名，仅保存在当前 Popup 内存中，关闭开关时清空；尚未接入解析与填充，不发送文件或页面消息。
 - Popup 关闭后 React 内存状态会丢失；需要持久化的状态应放入扩展存储。
@@ -93,8 +94,9 @@ feelfill/
 
 `entrypoints/options/`：
 
-- 提供 `enabled` 设置和显式保存按钮，将值写入 `browser.storage.local`。
-- Options 组件当前直接定义在 `main.tsx` 中，并与 Popup 使用同一存储字段。
+- 使用 shadcn/ui Sidebar 提供可折叠的左侧设置导航，当前仅包含“鉴权”入口。
+- 鉴权页当前只提供 OpenAI OAuth 设备码流程；进入设备码面板时自动发起授权，并提供返回与失败重试操作。
+- OpenAI OAuth 的凭据交换与轮询仍由尚未完成的 Adapter 负责。
 
 ### Content Script
 
@@ -113,8 +115,10 @@ feelfill/
 
 - LLM 配置从 `browser.storage.local.llmConfig` 读取。
 - Provider 工厂支持 OpenAI、OpenAI Codex、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint。
-- OpenAI Codex Provider 使用 LangChain Responses API 适配 `https://chatgpt.com/backend-api/codex/responses`；`llmConfig.api_key` 必须是 Codex OAuth access token，Provider 会从 JWT 提取 `chatgpt_account_id`。OAuth 登录和刷新流程尚未接入。
+- OpenAI Codex Provider 使用 LangChain Responses API 适配 `https://chatgpt.com/backend-api/codex/responses`；Provider 会从 OAuth JWT 提取 `chatgpt_account_id`。
+- Codex OAuth 使用浏览器兼容的 device-code 流程，支持打开验证页、轮询授权、交换 Token、持久化、提前刷新和并发刷新合并；Options/Popup 登录 UI 与消息协议尚未接入。
 - `BrowserAuthStorage` 使用带 `llmAuth:` 前缀的独立 `browser.storage.local` 条目保存序列化凭据，并提供读取、写入、删除和枚举操作。
+- `ApiKeyAuth` 实现 API Key 的本地校验、按 Provider 隔离存取和清除，逻辑存储键包含 `api-key` 命名空间，避免与 OAuth 凭据冲突。
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
 - Prompt 已包含把网页和文档内容视为不可信数据的约束。
 - 模型响应当前仍以原始 LangChain 消息返回，尚未使用 Zod 做结构化解析和运行时校验。
@@ -228,6 +232,7 @@ npm run zip:firefox
 ## 编码约定
 
 - 保持 TypeScript `strict` 模式，不用 `any` 绕过类型检查。
+- 优先使用 shadcn/ui 组件；仅在没有合适组件时考虑自己实现。
 - React 使用函数组件和 Hooks。
 - 遵循“当前目录结构”中定义的模块职责，不重复建立含义相同的目录。
 - 从入口引用共享模块时优先使用 WXT 已配置的根路径别名，例如 `@/src/types/message`；不要手工修改 `.wxt/tsconfig.json`。

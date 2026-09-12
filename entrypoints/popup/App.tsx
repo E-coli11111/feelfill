@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
+import { CircleAlert, FileText, Settings2, Sparkles } from 'lucide-react';
 import { browser } from 'wxt/browser';
-import Switch from '@/src/components/switch';
 import Uploader from '@/src/components/uploader';
+import { Button } from '@/src/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/src/components/ui/card';
+import { Switch } from '@/src/components/ui/switch';
 
 export default function App() {
   const [enabled, setEnabled] = useState(false);
@@ -49,45 +59,82 @@ export default function App() {
     }
   }
 
+  const status = loading
+    ? '正在读取状态…'
+    : saving
+      ? '正在保存…'
+      : enabled
+        ? '已开启，选择需要使用的文件'
+        : '已关闭，开启后可选择文件';
+
   return (
-    <main className="rounded-md mx-auto w-full max-w-[440px] p-5 max-[320px]:p-4">
-      <header className="mb-6 flex items-center gap-3">
-        <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-          <svg viewBox="0 0 24 24" fill="none" className="size-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 18V6h10M7 12h7M15 17l2 2 4-5" />
-          </svg>
-        </span>
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight text-slate-900">FeelFill</h1>
-          <p className="text-xs leading-5 text-slate-500">让填写更轻松</p>
-        </div>
-      </header>
+    <main className="w-full p-4">
+      <Card className="gap-0 overflow-hidden py-0">
+        <CardHeader className="border-b py-5">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Sparkles aria-hidden="true" className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <CardTitle>FeelFill</CardTitle>
+              <CardDescription className="mt-1">让填写更轻松</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
 
-      <section aria-label="扩展开关" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-        <Switch enabled={enabled} disabled={loading || saving} onChange={(next) => void toggleEnabled(next)} text="开启 FeelFill" />
-        <p role="status" className="mt-2 text-xs leading-5 text-slate-500">
-          {loading ? '正在读取状态…' : saving ? '正在保存…' : enabled ? '已开启，选择需要使用的文件' : '已关闭，开启后可选择文件'}
-        </p>
-      </section>
+        <CardContent className="space-y-4 py-5">
+          <section aria-label="扩展开关" className="rounded-lg border p-4">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm font-medium leading-none">开启 FeelFill</span>
+              <Switch
+                checked={enabled}
+                disabled={loading || saving}
+                aria-label="开启 FeelFill"
+                onCheckedChange={(next) => void toggleEnabled(next)}
+              />
+            </div>
+            <p role="status" className="mt-2 text-xs text-muted-foreground">{status}</p>
+          </section>
 
-      {enabled && (
-        <section aria-label="上传文件" className="mt-4">
-          <Uploader multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" text={file ? '重新选择文件' : '点击上传文件'} onChange={(files) => { if (files[0]) setFile(files[0]); }} />
-          <p className="mt-2 text-center text-[11px] leading-5 text-slate-500">支持 PDF、Word、JPG、PNG</p>
-          {file && <p role="status" className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-700 [overflow-wrap:anywhere]">已选择：{file.name}</p>}
-        </section>
-      )}
+          {enabled && (
+            <section aria-label="上传文件" className="space-y-3">
+              <Uploader
+                multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                text={file ? '重新选择文件' : '点击上传文件'}
+                onChange={(files) => { if (files[0]) setFile(files[0]); }}
+              />
+              <p className="text-center text-xs text-muted-foreground">支持 PDF、Word、JPG、PNG</p>
+              {file && (
+                <div role="status" className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm">
+                  <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 break-all">已选择：{file.name}</span>
+                </div>
+              )}
+            </section>
+          )}
 
-      {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{error}</p>}
+          {error && (
+            <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </CardContent>
 
-      <footer className="mt-5 border-t border-slate-200 pt-3">
-        <button type="button" disabled={openingSettings} onClick={() => void openSettings()} className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-medium text-slate-600 transition-colors hover:bg-slate-200/60 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-wait disabled:opacity-50">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-            <path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="3" fill="currentColor" /><circle cx="15" cy="17" r="3" fill="currentColor" />
-          </svg>
-          {openingSettings ? '正在打开…' : '打开设置'}
-        </button>
-      </footer>
+        <CardFooter className="border-t py-3">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={openingSettings}
+            onClick={() => void openSettings()}
+            className="w-full"
+          >
+            <Settings2 aria-hidden="true" className="size-4" />
+            {openingSettings ? '正在打开…' : '打开设置'}
+          </Button>
+        </CardFooter>
+      </Card>
     </main>
   );
 }

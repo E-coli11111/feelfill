@@ -3,7 +3,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 import type { ParsedInputFieldResult } from "@/src/types/document";
 import type { LLMConfig, LLMProvider } from "@/src/types/llm";
-import { fileAsBase64 } from "@/src/utils/file_utils";
+import { fileAsBase64 } from "@/src/utils/file-utils";
 import { buildParseDocumentPrompt, buildParseHtmlPrompt } from "./prompt";
 import { createLLMProvider } from "./provider";
 

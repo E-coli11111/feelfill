@@ -1,5 +1,5 @@
 import type { BackgroundRequest, BackgroundResponse } from '@/src/types/message';
-import { parseHTMLField, parseDocumentField } from '@/src/service/llm';
+import { parseHTMLField, parseDocumentField } from '@/src/services/llm';
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(({ reason }) => {

@@ -18,11 +18,11 @@ const mocks = vi.hoisted(() => ({
   invoke: vi.fn<(messages: BaseMessage[]) => Promise<MockModelResponse>>(),
 }));
 
-vi.mock('@/src/service/llm/provider', () => ({
+vi.mock('@/src/services/llm/provider', () => ({
   createLLMProvider: mocks.createLLMProvider,
 }));
 
-import { parseDocumentField, parseHTMLField } from '@/src/service/llm';
+import { parseDocumentField, parseHTMLField } from '@/src/services/llm';
 
 describe('LLM service', () => {
   beforeEach(() => {
