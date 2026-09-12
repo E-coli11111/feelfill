@@ -20,11 +20,11 @@ export function useOpenaiDeviceCode() {
     setCode(null);
 
     try {
-      const deviceCode = await adapter.fetchDeviceCode();
-      setCode(deviceCode);
+      const result = await adapter.fetchDeviceCode();
+      setCode(result.user_code);
       setStep('wait');
 
-      await adapter.authorize({});
+      await adapter.authorize(result);
       setStep('success');
     } catch {
       setStep('error');

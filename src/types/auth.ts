@@ -15,7 +15,6 @@ export interface BaseAuthAdapter {
 }
 
 /** Contract for validating and persisting one provider's API key. */
-/** Contract for validating and persisting one provider's API key. */
 export interface ApiKeyAuthAdapter extends BaseAuthAdapter {
   readonly type: 'api-key';
   validate(apiKey: string): Promise<void>;
