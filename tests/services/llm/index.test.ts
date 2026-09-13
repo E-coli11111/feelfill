@@ -2,8 +2,7 @@ import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/m
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 
-import type { ParsedInputFieldResult } from '@/src/types/document';
-import type { LLMConfig } from '@/src/types/llm';
+import type { LLMConfig, ParsedInputFieldResult } from '@/src/services/llm/types';
 
 type MockModelResponse = {
   text: string;

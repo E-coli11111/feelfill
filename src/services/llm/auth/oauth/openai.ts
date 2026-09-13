@@ -1,5 +1,5 @@
-import type { OAuthAuthAdapter } from '@/src/types/auth';
-import { BrowserAuthStorage } from '@/src/services/llm/auth/storage';
+import type { OAuthAuthAdapter } from '@/src/services/llm/auth/types';
+import { BrowserStorage } from '@/src/services/llm/storage';
 
 const CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann'; // TODO: Replace with actual client ID if needed
 // OpenAI default authentication url
@@ -14,14 +14,16 @@ const DEVICE_REDIRECT_URI = `${AUTH_BASE_URL}/deviceauth/callback`;
 const NOT_IMPLEMENTED_ERROR = 'OpenAI OAuth credential exchange is not implemented.';
 
 /** Authentication adapter skeleton for the OpenAI Codex OAuth flow. */
-export class OpenAICodexDeviceCodeOAuthAdapter implements OAuthAuthAdapter {
+export class OpenAICodexDeviceCodeOAuth implements OAuthAuthAdapter<{
+  onDeviceCode: (user_code: string, authorizeUrl: string) => void;
+}> {
   public readonly type = 'oauth' as const;
   public readonly provider = 'openai-codex' as const;
   public readonly authorizeUrl = DEVICE_AUTH_URL;
-  private readonly storage = new BrowserAuthStorage();
+  private readonly storage = new BrowserStorage();
 
   /** Starts the OpenAI Codex OAuth authorization flow. */
-  async fetchDeviceCode(): Promise<{
+  private async fetchDeviceCode(): Promise<{
     device_auth_id: string;
     user_code: string;
     expires_at: number;
@@ -41,7 +43,7 @@ export class OpenAICodexDeviceCodeOAuthAdapter implements OAuthAuthAdapter {
     if (!response.ok) {
       throw new Error(`Failed to initiate device code flow: ${response.statusText}`);
     }
-    
+
     const userCodeData = (await response.json()) as {
       device_auth_id: string;
       user_code: string;
@@ -53,7 +55,7 @@ export class OpenAICodexDeviceCodeOAuthAdapter implements OAuthAuthAdapter {
   }
 
   /** Waits for the user to authorize the device code. */
-  async waitForUserAuthorization(options: {
+  private async waitForUserAuthorization(options: {
     device_auth_id: string;
     user_code: string;
     expires_at: number;
@@ -64,38 +66,46 @@ export class OpenAICodexDeviceCodeOAuthAdapter implements OAuthAuthAdapter {
     code_verifier: string;
   }> {
     return new Promise((resolve, reject) => {
-      const timer = setInterval(async () => {
+      const poll = async (): Promise<void> => {
         if (Date.now() >= options.expires_at * 1000) {
-          clearInterval(timer);
           reject(new Error('Device code expired before authorization was completed.'));
+          return;
         }
 
-        // Poll for authorization status
-        const response = await fetch(DEVICE_TOKEN_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            device_auth_id: options.device_auth_id,
-            user_code: options.user_code,
-          }),
-        });
-        console.log('response', await response.clone().json());
+        try {
+          const response = await fetch(DEVICE_TOKEN_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              device_auth_id: options.device_auth_id,
+              user_code: options.user_code,
+            }),
+          });
 
-        if (response.ok) {
-          // Stop polling and return the token
-          clearInterval(timer);
-          const tokenData = await response.json();
-          resolve(tokenData);
+          if (response.ok) {
+            const tokenData = (await response.json()) as {
+              authorization_code: string;
+              code_challenge: string;
+              code_verifier: string;
+            };
+            resolve(tokenData);
+            return;
+          }
+
+          setTimeout(() => void poll(), options.interval * 1000);
+        } catch (error) {
+          reject(error);
         }
-        
-      }, options.interval * 1000);
+      };
+
+      setTimeout(() => void poll(), options.interval * 1000);
     });
   }
 
   /** Exchanges a device code for an access token. */
-  async exchangeDeviceCodeForToken(
+  private async exchangeDeviceCodeForToken(
     authorization_code: string,
     code_verifier: string
   ): Promise<{
@@ -116,7 +126,7 @@ export class OpenAICodexDeviceCodeOAuthAdapter implements OAuthAuthAdapter {
         code_verifier: code_verifier,
       }).toString(),
     });
-    console.log('exchangeDeviceCodeForToken response', await response.clone().json());
+
     if (!response.ok) {
       throw new Error(`Failed to exchange device code for token: ${response.statusText}`);
     }
@@ -126,19 +136,19 @@ export class OpenAICodexDeviceCodeOAuthAdapter implements OAuthAuthAdapter {
 
   /** Authorizes the user with the OpenAI Codex using device code. */
   async authorize(options: {
-    device_auth_id: string;
-    user_code: string;
-    expires_at: number;
-    interval: number;
+    onDeviceCode: (user_code: string, authorizeUrl: string) => void;
   }): Promise<void> {
-    const authToken = await this.waitForUserAuthorization(options);
+    const deviceCode = await this.fetchDeviceCode();
+    options.onDeviceCode(deviceCode.user_code, this.authorizeUrl);
+
+    const authToken = await this.waitForUserAuthorization(deviceCode);
 
     const access_token = await this.exchangeDeviceCodeForToken(
       authToken.authorization_code,
       authToken.code_verifier,
     );
 
-    await this.storage.set('openai:access_token', JSON.stringify(access_token));
+    await this.storage.set(`${this.provider}:access_token`, JSON.stringify(access_token));
   }
 
   /** Refreshes an existing OpenAI Codex OAuth credential. */
@@ -153,6 +163,14 @@ export class OpenAICodexDeviceCodeOAuthAdapter implements OAuthAuthAdapter {
 
   /** Returns the serialized OpenAI Codex OAuth credential. */
   async getCredentials(): Promise<string | null> {
-    return await this.storage.get('openai:access_token');
+    return await this.storage.get(`${this.provider}:access_token`);
   }
 }
+
+
+/** Placeholder for a future non-device-code OpenAI OAuth adapter. */
+export class OpenAICodexOAuth {
+  // TODO
+}
+
+export default OpenAICodexOAuth;

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import type { BaseAuthPanelProps } from '@/src/components/auth/types';
+
 import { OpenaiDeviceCodePanel } from './device';
 import { Button } from '@/src/components/ui/button';
 import {
@@ -11,7 +13,12 @@ import {
   CardTitle,
 } from '@/src/components/ui/card';
 
-export default function OpenaiOAuthPanel() {
+/** Props accepted by the OpenAI OAuth authentication panel. */
+export interface OpenaiOAuthPanelProps extends BaseAuthPanelProps {
+  onBack?: () => void;
+}
+
+export function OpenaiOAuthPanel(_props: OpenaiOAuthPanelProps) {
   const [view, setView] = useState<'overview' | 'device'>('overview');
 
   return (
@@ -43,3 +50,5 @@ export default function OpenaiOAuthPanel() {
     </>
   );
 }
+
+export default OpenaiOAuthPanel;

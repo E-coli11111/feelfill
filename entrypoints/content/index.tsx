@@ -1,6 +1,6 @@
 import './style.css';
 
-import type { BackgroundResponse, ContentRequest, ContentResponse } from '@/src/types/message';
+import type { BackgroundResponse, ContentRequest, ContentResponse } from '@/src/types';
 
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],

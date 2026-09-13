@@ -6,7 +6,7 @@ import { ChatGoogle } from "@langchain/google";
 import { ChatOpenRouter } from "@langchain/openrouter";
 import { ChatXAI } from "@langchain/xai";
 
-import type { LLMConfig } from "@/src/types/llm";
+import type { LLMConfig } from "@/src/services/llm/types";
 import { createOpenAICodexChatModel } from "./openai-codex";
 
 /**

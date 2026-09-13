@@ -1,4 +1,4 @@
-import type { BaseAuthStorage } from '@/src/types/auth';
+import type { BaseStorage } from '@/src/services/llm/types';
 
 /** Prefix used to isolate authentication entries from other extension storage. */
 export const AUTH_STORAGE_PREFIX = 'llmAuth:';
@@ -30,7 +30,7 @@ function fromStorageKey(storageKey: string): string | null {
  * migrations. Each logical key is stored separately to avoid overwriting
  * unrelated credentials during concurrent writes.
  */
-export class BrowserAuthStorage implements BaseAuthStorage {
+export class BrowserStorage implements BaseStorage {
   /**
    * Reads a serialized authentication value.
    *

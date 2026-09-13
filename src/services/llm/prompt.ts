@@ -1,4 +1,4 @@
-import type { ParsedInputFieldResult } from "@/src/types/document";
+import type { ParsedInputFieldResult } from "./types";
 
 /**
  * Builds a prompt that identifies fillable fields in webpage HTML.

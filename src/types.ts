@@ -1,4 +1,4 @@
-import type { ParsedInputFieldResult } from '@/src/types/document';
+import type { ParsedInputFieldResult } from '@/src/services/llm/types';
 
 export type BackgroundRequest = 
   | { type: 'SET', setting: object } // set particular data in setting
@@ -15,3 +15,4 @@ export type ContentRequest =
 
 export type ContentResponse =
   | { type: 'FILL_PAGE', success: boolean, error?: string } // return if the fill operation was successful or not
+

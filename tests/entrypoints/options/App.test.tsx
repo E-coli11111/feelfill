@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
 import App from '@/entrypoints/options/App';
 
 const oauthMocks = vi.hoisted(() => ({
@@ -8,7 +9,7 @@ const oauthMocks = vi.hoisted(() => ({
   step: 'wait' as 'requesting' | 'wait' | 'success' | 'error',
 }));
 
-vi.mock('@/src/hooks/auth/openai-oauth', () => ({
+vi.mock('@/src/components/auth/oauth/openai/hooks', () => ({
   useOpenaiDeviceCode: () => ({
     step: oauthMocks.step,
     code: 'ABCD-EFGH',
@@ -19,6 +20,7 @@ vi.mock('@/src/hooks/auth/openai-oauth', () => ({
 
 describe('Options', () => {
   beforeEach(() => {
+    fakeBrowser.reset();
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -62,6 +64,7 @@ describe('Options', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(await screen.findByRole('button', { name: '登录' }));
     await user.click(screen.getByRole('button', { name: '使用设备码授权' }));
     await waitFor(() => expect(oauthMocks.authorize).toHaveBeenCalledTimes(1));
     expect(screen.getByLabelText('设备码')).toHaveTextContent('ABCD-EFGH');
@@ -76,6 +79,7 @@ describe('Options', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(await screen.findByRole('button', { name: '登录' }));
     await user.click(screen.getByRole('button', { name: '使用设备码授权' }));
     await waitFor(() => expect(oauthMocks.authorize).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('alert')).toHaveTextContent('授权失败');

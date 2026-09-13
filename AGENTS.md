@@ -26,6 +26,7 @@
 ```text
 feelfill/
 ├─ entrypoints/
+│  ├─ types.ts               # 扩展入口之间共享的消息类型
 │  ├─ background.ts          # MV3 后台 Service Worker
 │  ├─ popup/
 │  │  ├─ index.html          # 工具栏弹窗 HTML 入口
@@ -43,8 +44,7 @@ feelfill/
 ├─ src/
 │  ├─ components/            # 所有 React 组件；按功能子目录组织
 │  ├─ hooks/                 # react hooks；按功能子目录组织
-│  ├─ services/llm/          # LLM 调用、Provider 创建和 Prompt 构建
-│  ├─ types/                 # 文档、LLM 配置和消息类型
+│  ├─ services/llm/          # LLM 调用、Provider 创建、Prompt 构建和该包导出的类型
 │  ├─ utils/                 # 当前包含文件 Base64 转换
 │  └─ constants.ts           # 当前为空
 ├─ wxt.config.ts             # WXT、Vite/Tailwind、扩展 Manifest 配置
@@ -61,7 +61,7 @@ feelfill/
 
 - 核心复杂 React 组件放在 `src/components/`按照功能子目录组织.
 - 所有可复用 React hooks 放在 `src/hooks/` ，不可复用的 hooks 放在对应的组件目录下 `hooks.ts`。
-- 所有类型声明放在 `src/types/`。
+- 每个功能包对外导出的类型统一声明在该包目录下的 `types.ts` 中；仅在单个文件内部使用的类型就近声明，不创建全局类型目录。
 - 无状态、无副作用的纯函数放在 `src/utils/`。
 - 涉及 `browser.*`、存储、消息或远程请求的代码放在 `src/service/`；当前目录名是单数 `service`，不要同时创建 `src/services/`。
 - 只服务于单个入口的组件或辅助代码放在对应的 `entrypoints/<name>/` 附近。
@@ -95,8 +95,8 @@ feelfill/
 `entrypoints/options/`：
 
 - 使用 shadcn/ui Sidebar 提供可折叠的左侧设置导航，当前仅包含“鉴权”入口。
-- 鉴权页当前只提供 OpenAI OAuth 设备码流程；进入设备码面板时自动发起授权，并提供返回与失败重试操作。
-- OpenAI OAuth 的凭据交换与轮询仍由尚未完成的 Adapter 负责。
+- 鉴权页通过 `AuthPanel` 枚举已注册的认证面板，读取对应认证 Adapter 的凭据并显示登录状态；选择登录后渲染具体面板并注入 provider 与 `authorizeMethod`。当前只提供 OpenAI OAuth 设备码面板。
+- OpenAI OAuth Adapter 负责获取设备码、通知 UI 展示、轮询授权、交换 Token 和持久化凭据；设备码面板通过 Hook 调用完整授权流程。
 
 ### Content Script
 
@@ -116,7 +116,7 @@ feelfill/
 - LLM 配置从 `browser.storage.local.llmConfig` 读取。
 - Provider 工厂支持 OpenAI、OpenAI Codex、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint。
 - OpenAI Codex Provider 使用 LangChain Responses API 适配 `https://chatgpt.com/backend-api/codex/responses`；Provider 会从 OAuth JWT 提取 `chatgpt_account_id`。
-- Codex OAuth 使用浏览器兼容的 device-code 流程，支持打开验证页、轮询授权、交换 Token、持久化、提前刷新和并发刷新合并；Options/Popup 登录 UI 与消息协议尚未接入。
+- Codex OAuth 使用浏览器兼容的 device-code 流程，支持打开验证页、轮询授权、交换 Token 和持久化；Options 已通过认证注册表接入登录 UI，Popup 登录 UI 与消息协议尚未接入。
 - `BrowserAuthStorage` 使用带 `llmAuth:` 前缀的独立 `browser.storage.local` 条目保存序列化凭据，并提供读取、写入、删除和枚举操作。
 - `ApiKeyAuth` 实现 API Key 的本地校验、按 Provider 隔离存取和清除，逻辑存储键包含 `api-key` 命名空间，避免与 OAuth 凭据冲突。
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
@@ -235,7 +235,7 @@ npm run zip:firefox
 - 优先使用 shadcn/ui 组件；仅在没有合适组件时考虑自己实现。
 - React 使用函数组件和 Hooks。
 - 遵循“当前目录结构”中定义的模块职责，不重复建立含义相同的目录。
-- 从入口引用共享模块时优先使用 WXT 已配置的根路径别名，例如 `@/src/types/message`；不要手工修改 `.wxt/tsconfig.json`。
+- 从入口引用共享模块时优先使用 WXT 已配置的根路径别名，例如 `@/src/services/llm/types`；不要手工修改 `.wxt/tsconfig.json`。
 - 仅导入 TypeScript 类型时使用 `import type`。
 - 异步扩展 API 调用应明确处理 Promise；不等待结果时使用 `void` 表达意图。
 - 浏览器扩展 API 使用 WXT 提供的 `browser` 接口。

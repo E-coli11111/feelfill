@@ -2,7 +2,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { ChatOpenAI } from "@langchain/openai";
 import { z } from "zod";
 
-import type { LLMConfig } from "@/src/types/llm";
+import type { LLMConfig } from "@/src/services/llm/types";
 
 const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api";
 const OPENAI_AUTH_CLAIM = "https://api.openai.com/auth";

@@ -1,22 +1,19 @@
 import type {
   ApiKeyAuthAdapter,
-  BaseAuthStorage,
-} from '@/src/types/auth';
-import type { LLMProvider } from '@/src/types/llm';
-import { BrowserAuthStorage } from './storage';
-
-// Creates a storage key for a provider's API key.
-function createStorageKey(provider: LLMProvider): string {
-  return `${provider}:api-key`;
-}
+} from '@/src/services/llm/auth/types';
+import type { LLMProvider, BaseStorage } from '@/src/services/llm/types';
+import { BrowserStorage } from '../storage';
 
 /** Manages a provider API key using the configured authentication storage. */
 export class ApiKeyAuth implements ApiKeyAuthAdapter {
   public readonly type = 'api-key' as const;
   public readonly provider: LLMProvider;
+  public readonly allowBaseurl: boolean = false;
 
-  private readonly storage: BaseAuthStorage;
-  private readonly storageKey: string;
+  private readonly storage: BaseStorage;
+  private readonly storageApiKey: string;
+  private readonly storageUrlKey: string;
+  
 
   /**
    * Creates an API-key authentication adapter for one provider.
@@ -26,11 +23,15 @@ export class ApiKeyAuth implements ApiKeyAuthAdapter {
    */
   constructor(
     provider: LLMProvider,
-    storage: BaseAuthStorage = new BrowserAuthStorage(),
+    allowBaseurl: boolean = false,
+    storage: BaseStorage = new BrowserStorage(),
   ) {
     this.provider = provider;
     this.storage = storage;
-    this.storageKey = createStorageKey(provider);
+    this.storageApiKey = `${provider}:api-key`;
+    this.storageUrlKey = `llm-auth:${this.storageApiKey}`;
+
+    this.allowBaseurl = allowBaseurl;
   }
 
   /**
@@ -42,7 +43,7 @@ export class ApiKeyAuth implements ApiKeyAuthAdapter {
    * @param apiKey API key supplied by the user.
    * @throws If the API key is empty or contains only whitespace.
    */
-  async validate(apiKey: string): Promise<void> {
+  async validateCredentials(apiKey: string): Promise<void> {
     if (!apiKey.trim()) {
       throw new Error('API key must not be empty');
     }
@@ -56,17 +57,33 @@ export class ApiKeyAuth implements ApiKeyAuthAdapter {
    * @param apiKey API key supplied by the user.
    */
   async setCredentials(apiKey: string): Promise<void> {
-    await this.validate(apiKey);
-    await this.storage.set(this.storageKey, apiKey);
+    await this.validateCredentials(apiKey);
+    await this.storage.set(this.storageApiKey, apiKey);
+  }
+
+  async setBaseUrl(baseUrl: string): Promise<void> {
+    if (!this.allowBaseurl) {
+      throw new Error('Base URL is not allowed for this provider');
+    }
+
+    await this.storage.set(this.storageUrlKey, baseUrl);
+  }
+
+  async getBaseUrl(): Promise<string | null> {
+    if (!this.allowBaseurl) {
+      throw new Error('Base URL is not allowed for this provider');
+    }
+
+    return this.storage.get(this.storageUrlKey);
   }
 
   /** Returns the stored API key, or `null` when none is configured. */
   async getCredentials(): Promise<string | null> {
-    return this.storage.get(this.storageKey);
+    return this.storage.get(this.storageApiKey);
   }
 
   /** Removes the stored API key for this provider. */
   async clearCredentials(): Promise<void> {
-    await this.storage.remove(this.storageKey);
+    await this.storage.remove(this.storageApiKey);
   }
 }

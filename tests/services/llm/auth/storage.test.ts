@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 
-import { BrowserAuthStorage } from '@/src/services/llm/auth/storage';
+import { BrowserStorage } from '@/src/services/llm/storage';
 
 describe('BrowserAuthStorage', () => {
   beforeEach(() => {
@@ -9,7 +9,7 @@ describe('BrowserAuthStorage', () => {
   });
 
   it('stores, lists, and removes namespaced authentication values', async () => {
-    const storage = new BrowserAuthStorage();
+    const storage = new BrowserStorage();
     await fakeBrowser.storage.local.set({ enabled: true });
 
     await storage.set('openai-codex', '{"type":"oauth"}');
@@ -24,7 +24,7 @@ describe('BrowserAuthStorage', () => {
   });
 
   it('rejects empty logical keys', async () => {
-    const storage = new BrowserAuthStorage();
+    const storage = new BrowserStorage();
     await expect(storage.get('')).rejects.toThrow('Auth storage key must not be empty');
   });
 });

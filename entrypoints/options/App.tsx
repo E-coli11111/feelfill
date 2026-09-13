@@ -1,5 +1,5 @@
 import { KeyRound } from 'lucide-react';
-import OpenaiOAuthPanel from '@/src/components/auth/oauth/openai';
+import AuthPanel from '@/src/components/auth';
 import { Separator } from '@/src/components/ui/separator';
 import {
   Sidebar,
@@ -82,7 +82,7 @@ export default function App() {
             </p>
           </header>
 
-          <OpenaiOAuthPanel />
+          <AuthPanel />
         </section>
       </SidebarInset>
     </SidebarProvider>

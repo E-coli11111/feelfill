@@ -1,4 +1,4 @@
-import type { BackgroundRequest, BackgroundResponse } from '@/src/types/message';
+import type { BackgroundRequest, BackgroundResponse } from '@/src/types';
 import { parseHTMLField, parseDocumentField } from '@/src/services/llm';
 
 export default defineBackground(() => {

@@ -1,12 +1,5 @@
-import type { LLMProvider } from './llm';
+import type { LLMProvider } from '../types';
 
-/** Storage contract for serialized provider authentication credentials. */
-export interface BaseAuthStorage {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<void>;
-  remove(key: string): Promise<void>;
-  list(): Promise<string[]>;
-}
 
 /** Common lifecycle implemented by authentication methods. */
 export interface BaseAuthAdapter {
@@ -17,7 +10,7 @@ export interface BaseAuthAdapter {
 /** Contract for validating and persisting one provider's API key. */
 export interface ApiKeyAuthAdapter extends BaseAuthAdapter {
   readonly type: 'api-key';
-  validate(apiKey: string): Promise<void>;
+  validateCredentials(apiKey: string): Promise<void>;
   setCredentials(apiKey: string): Promise<void>;
   getCredentials(): Promise<string | null>;
   clearCredentials(): Promise<void>;
@@ -33,4 +26,10 @@ export interface OAuthAuthAdapter<
   refresh(credential: Credential): Promise<Credential>;
   revoke?(credential: Credential): Promise<void>;
   getCredentials(): Promise<string | null>;
+}
+
+/** Authorization adapters grouped by authentication mechanism and provider. */
+export interface AuthMethodRegistry {
+  apiKey: Partial<Record<LLMProvider, ApiKeyAuthAdapter>>;
+  oauth: Partial<Record<LLMProvider, OAuthAuthAdapter<never>>>;
 }

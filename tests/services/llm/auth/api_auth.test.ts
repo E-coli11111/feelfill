@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 
-import { ApiKeyAuth } from '@/src/services/llm/auth/api_auth';
+import { ApiKeyAuth } from '@/src/services/llm/auth/api-auth';
 
 describe('ApiKeyAuth', () => {
   beforeEach(() => {

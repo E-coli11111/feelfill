@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import { OpenAICodexDeviceCodeOAuthAdapter } from '@/src/services/llm/auth/oauth/openai';
+import { OpenAICodexDeviceCodeOAuth } from '@/src/services/llm/auth/oauth/openai';
 
 export type OpenaiDeviceCodeStep = 'requesting' | 'wait' | 'success' | 'error';
 
@@ -10,7 +10,7 @@ export function useOpenaiDeviceCode() {
   const [code, setCode] = useState<string | null>(null);
 
   const adapter = useMemo(
-    () => new OpenAICodexDeviceCodeOAuthAdapter(),
+    () => new OpenAICodexDeviceCodeOAuth(),
     [],
   );
   const authorizeUrl = adapter.authorizeUrl;
@@ -20,11 +20,12 @@ export function useOpenaiDeviceCode() {
     setCode(null);
 
     try {
-      const result = await adapter.fetchDeviceCode();
-      setCode(result.user_code);
-      setStep('wait');
-
-      await adapter.authorize(result);
+      await adapter.authorize({
+        onDeviceCode: (userCode) => {
+          setCode(userCode);
+          setStep('wait');
+        },
+      });
       setStep('success');
     } catch {
       setStep('error');
