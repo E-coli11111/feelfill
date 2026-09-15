@@ -31,7 +31,8 @@ feelfill/
 │  ├─ popup/
 │  │  ├─ index.html          # 工具栏弹窗 HTML 入口
 │  │  ├─ main.tsx            # Popup React 挂载入口
-│  │  ├─ App.tsx             # Popup UI 与状态逻辑
+│  │  ├─ App.tsx             # Popup UI
+│  │  ├─ hooks.ts            # Popup 状态与浏览器 API 交互
 │  │  └─ style.css           # Popup Tailwind/CSS 入口
 │  ├─ options/
 │  │  ├─ index.html          # 设置页 HTML 入口

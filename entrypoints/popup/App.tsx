@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import { CircleAlert, FileText, Settings2, Sparkles } from 'lucide-react';
-import { browser } from 'wxt/browser';
+
 import Uploader from '@/src/components/uploader';
 import { Button } from '@/src/components/ui/button';
 import {
@@ -13,59 +12,21 @@ import {
 } from '@/src/components/ui/card';
 import { Switch } from '@/src/components/ui/switch';
 
+import { usePopup } from './hooks';
+
 export default function App() {
-  const [enabled, setEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [openingSettings, setOpeningSettings] = useState(false);
-  const [error, setError] = useState('');
-  const [file, setFile] = useState<File>();
-
-  useEffect(() => {
-    let active = true;
-    void browser.storage.local.get('enabled').then(({ enabled }) => {
-      if (active) setEnabled(enabled !== false);
-    }).catch(() => {
-      if (active) setError('无法读取开关状态，请重新打开弹窗。');
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
-  }, []);
-
-  async function toggleEnabled(next: boolean) {
-    setSaving(true);
-    setError('');
-    try {
-      await browser.storage.local.set({ enabled: next });
-      setEnabled(next);
-      if (!next) setFile(undefined);
-    } catch {
-      setError('未能保存开关状态，请重试。');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function openSettings() {
-    setOpeningSettings(true);
-    setError('');
-    try {
-      await browser.runtime.openOptionsPage();
-    } catch {
-      setError('无法打开设置，请重试。');
-    } finally {
-      setOpeningSettings(false);
-    }
-  }
-
-  const status = loading
-    ? '正在读取状态…'
-    : saving
-      ? '正在保存…'
-      : enabled
-        ? '已开启，选择需要使用的文件'
-        : '已关闭，开启后可选择文件';
+  const {
+    enabled,
+    error,
+    file,
+    loading,
+    openingSettings,
+    saving,
+    status,
+    openSettings,
+    selectFile,
+    toggleEnabled,
+  } = usePopup();
 
   return (
     <main className="w-full p-4">
@@ -102,7 +63,7 @@ export default function App() {
                 multiple
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 text={file ? '重新选择文件' : '点击上传文件'}
-                onChange={(files) => { if (files[0]) setFile(files[0]); }}
+                onChange={selectFile}
               />
               <p className="text-center text-xs text-muted-foreground">支持 PDF、Word、JPG、PNG</p>
               {file && (
