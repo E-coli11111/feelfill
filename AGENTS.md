@@ -94,9 +94,10 @@ feelfill/
 
 `entrypoints/options/`：
 
-- 使用 shadcn/ui Sidebar 提供可折叠的左侧设置导航，当前仅包含“鉴权”入口。
-- 鉴权页通过 `AuthPanel` 枚举已注册的认证面板，读取对应认证 Adapter 的凭据并显示登录状态；选择登录后渲染具体面板并注入 provider 与 `authorizeMethod`。当前只提供 OpenAI OAuth 设备码面板。
-- OpenAI OAuth Adapter 负责获取设备码、通知 UI 展示、轮询授权、交换 Token 和持久化凭据；设备码面板通过 Hook 调用完整授权流程。
+- 使用 shadcn/ui Sidebar 提供可折叠的左侧设置导航，包含“鉴权”和“模型”入口。
+- 鉴权页通过 `AuthPanel` 枚举已注册的认证面板，读取对应认证 Adapter 的凭据并显示登录状态；选择登录后渲染具体面板并注入 provider 与 `authorizeMethod`。当前只提供统一的 OpenAI OAuth 面板。
+- OpenAI OAuth Adapter 负责浏览器 PKCE 与设备码授权流程、Token 交换和凭据持久化；对应面板通过 Hook 调用完整授权流程。
+- 模型页通过 `ModelPanel` 和同目录 Hook 加载已登录认证方式可用的模型，允许选择 Provider、认证方式和模型，并将选择保存到 `browser.storage.local.llmConfig`；没有可用模型时引导用户返回鉴权页。
 
 ### Content Script
 
@@ -113,12 +114,13 @@ feelfill/
 
 ### LLM 服务
 
-- LLM 配置从 `browser.storage.local.llmConfig` 读取。
-- Provider 工厂支持 OpenAI、OpenAI Codex、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint。
-- OpenAI Codex Provider 使用 LangChain Responses API 适配 `https://chatgpt.com/backend-api/codex/responses`；Provider 会从 OAuth JWT 提取 `chatgpt_account_id`。
-- Codex OAuth 使用浏览器兼容的 device-code 流程，支持打开验证页、轮询授权、交换 Token 和持久化；Options 已通过认证注册表接入登录 UI，Popup 登录 UI 与消息协议尚未接入。
-- `BrowserAuthStorage` 使用带 `llmAuth:` 前缀的独立 `browser.storage.local` 条目保存序列化凭据，并提供读取、写入、删除和枚举操作。
-- `ApiKeyAuth` 实现 API Key 的本地校验、按 Provider 隔离存取和清除，逻辑存储键包含 `api-key` 命名空间，避免与 OAuth 凭据冲突。
+- `BrowserStorage` 是由 `getStorage()` 提供的单例，直接使用消费者传入的完整键读写字符串值，不添加、编码或解析认证前缀；认证命名空间及具体键由各认证 Adapter 定义。模型配置通过该单例的 `getLLMConfig()` / `setLLMConfig()` 读写 `browser.storage.local.llmConfig`，并在存储边界调用配置 Schema 做运行时校验。
+- `listModels()` 按 Provider 和认证方式返回 `SUPPORTED_MODELS` 中已启用的模型；只有存在有效凭据的认证方式会出现在结果中，未登录或凭据损坏的认证方式会被省略。
+- Provider 工厂支持 OpenAI、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint；`provider` 只表示服务商，`auth_method` 独立表示 `api-key` 或 `oauth`。创建模型时通过两者的组合查找 Auth Adapter 并选择具体传输实现。
+- OpenAI 使用 API Key 时创建标准 OpenAI Provider，使用 OAuth 时创建基于 LangChain Responses API 的 Codex Provider，适配 `https://chatgpt.com/backend-api/codex/responses` 并从 OAuth JWT 提取 `chatgpt_account_id`。
+- OpenAI OAuth 通过统一的 `OpenAICodexOAuth` Adapter 实现 device-code 与浏览器 Authorization Code + PKCE 流程，两者复用 Token 交换、持久化、刷新和撤销逻辑；Adapter 自行定义完整凭据键，并兼容迁移旧的 OpenAI Codex access token 条目。浏览器流程通过专用标签页捕获 `localhost:1455` 回调并校验 `state`，不在扩展内启动本地 HTTP 服务。Options 已通过统一的 OpenAI 登录面板提供浏览器和设备码两种入口，Popup 登录 UI 与消息协议尚未接入。
+- 各认证 Adapter 使用自行定义的带 `llmAuth:` 前缀的完整 `browser.storage.local` 键保存序列化凭据，并通过 `BrowserStorage` 读取、写入和删除。
+- `ApiKeyAuth` 实现 API Key 的本地校验、按 Provider 隔离存取和清除，其完整存储键包含 `api-key` 命名空间，避免与 OAuth 凭据冲突。
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
 - Prompt 已包含把网页和文档内容视为不可信数据的约束。
 - 模型响应当前仍以原始 LangChain 消息返回，尚未使用 Zod 做结构化解析和运行时校验。

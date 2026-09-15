@@ -64,26 +64,27 @@ export function resolveCodexBaseUrl(baseUrl?: string): string {
 /**
  * Creates a LangChain chat model backed by the ChatGPT Codex Responses endpoint.
  *
- * `config.api_key` must contain a Codex OAuth access token, not an OpenAI Platform
- * API key. Token acquisition and refresh are intentionally handled separately.
- *
- * @param config Codex model, OAuth token, and generation settings.
+ * @param config Codex model and generation settings.
+ * @param accessToken A Codex OAuth access token resolved by the auth adapter.
  * @returns A LangChain chat model configured for the Codex Responses endpoint.
  * @throws If the model name or OAuth access token is missing or invalid.
  */
-export function createOpenAICodexChatModel(config: LLMConfig): BaseChatModel {
-  if (!config.api_key) {
+export function createOpenAICodexChatModel(
+  config: LLMConfig,
+  accessToken: string,
+): BaseChatModel {
+  if (!accessToken) {
     throw new Error("OpenAI Codex requires an OAuth access token");
   }
   if (!config.model_name) {
     throw new Error("OpenAI Codex requires a model name");
   }
 
-  const accountId = extractCodexAccountId(config.api_key);
+  const accountId = extractCodexAccountId(accessToken);
 
   return new ChatOpenAI({
     model: config.model_name,
-    apiKey: config.api_key,
+    apiKey: accessToken,
     temperature: config.temperature,
     maxTokens: config.max_tokens,
     topP: config.top_p,

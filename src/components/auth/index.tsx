@@ -9,55 +9,23 @@ import {
   CardHeader,
   CardTitle,
 } from '@/src/components/ui/card';
-import { SUPPORTED_AUTH_METHODS } from '@/src/services/llm/auth/registry';
+import { SUPPORTED_AUTH_METHODS } from '@/src/services/llm/registry';
 import type { AuthMethodRegistry } from '@/src/services/llm/auth/types';
 import type { LLMProvider } from '@/src/services/llm/types';
 
 import {
+  AUTH_KIND_LABELS,
+  PROVIDER_LABELS,
+  STATUS_LABELS,
   SUPPORTED_AUTH_PANELS,
-  type AuthPanelGroup,
-  type AuthPanelRegistry,
 } from './constants';
-import type { BaseAuthPanelProps } from './types';
-
-type AuthKind = keyof AuthPanelRegistry;
-type AuthStatus =
-  | 'loading'
-  | 'authenticated'
-  | 'unauthenticated'
-  | 'unavailable'
-  | 'error';
-
-interface RegisteredAuthPanel {
-  id: string;
-  kind: AuthKind;
-  provider: LLMProvider;
-  Panel: React.ComponentType<BaseAuthPanelProps>;
-  authorizeMethod?: BaseAuthPanelProps['authorizeMethod'];
-}
-
-const PROVIDER_LABELS: Record<LLMProvider, string> = {
-  openai: 'OpenAI',
-  'openai-codex': 'OpenAI Codex',
-  anthropic: 'Anthropic',
-  google: 'Google',
-  openrouter: 'OpenRouter',
-  xai: 'xAI',
-  custom: '自定义服务',
-};
-
-const AUTH_KIND_LABELS: Record<AuthKind, string> = {
-  apiKey: 'API Key',
-  oauth: 'OAuth',
-};
-
-const STATUS_LABELS: Record<AuthStatus, string> = {
-  loading: '正在检查登录状态…',
-  authenticated: '已登录',
-  unauthenticated: '未登录',
-  unavailable: '登录方式尚不可用',
-  error: '无法获取登录状态',
-};
+import type {
+  AuthKind,
+  AuthPanelGroup,
+  AuthPanelRegistry,
+  AuthStatus,
+  RegisteredAuthPanel,
+} from './types';
 
 function getRegisteredAuthPanels(): RegisteredAuthPanel[] {
   const panelRegistry: AuthPanelRegistry = SUPPORTED_AUTH_PANELS;

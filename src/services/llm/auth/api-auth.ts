@@ -2,7 +2,7 @@ import type {
   ApiKeyAuthAdapter,
 } from '@/src/services/llm/auth/types';
 import type { LLMProvider, BaseStorage } from '@/src/services/llm/types';
-import { BrowserStorage } from '../storage';
+import { getStorage } from '../storage';
 
 /** Manages a provider API key using the configured authentication storage. */
 export class ApiKeyAuth implements ApiKeyAuthAdapter {
@@ -24,12 +24,12 @@ export class ApiKeyAuth implements ApiKeyAuthAdapter {
   constructor(
     provider: LLMProvider,
     allowBaseurl: boolean = false,
-    storage: BaseStorage = new BrowserStorage(),
+    storage: BaseStorage = getStorage(),
   ) {
     this.provider = provider;
     this.storage = storage;
-    this.storageApiKey = `${provider}:api-key`;
-    this.storageUrlKey = `llm-auth:${this.storageApiKey}`;
+    this.storageApiKey = `llmAuth:${encodeURIComponent(`${provider}:api-key`)}`;
+    this.storageUrlKey = `llmAuth:${encodeURIComponent(`${provider}:api-base`)}`;
 
     this.allowBaseurl = allowBaseurl;
   }

@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 
-import { BrowserStorage } from '@/src/services/llm/storage';
+import { getStorage } from '@/src/services/llm/storage';
 
-describe('BrowserAuthStorage', () => {
+describe('BrowserStorage string values', () => {
   beforeEach(() => {
     fakeBrowser.reset();
   });
 
-  it('stores, lists, and removes namespaced authentication values', async () => {
-    const storage = new BrowserStorage();
+  it('returns the same shared instance', () => {
+    expect(getStorage()).toBe(getStorage());
+  });
+
+  it('uses consumer-defined keys without transforming them', async () => {
+    const storage = getStorage();
     await fakeBrowser.storage.local.set({ enabled: true });
 
     await storage.set('openai-codex', '{"type":"oauth"}');
@@ -23,8 +27,8 @@ describe('BrowserAuthStorage', () => {
     expect((await fakeBrowser.storage.local.get('enabled')).enabled).toBe(true);
   });
 
-  it('rejects empty logical keys', async () => {
-    const storage = new BrowserStorage();
-    await expect(storage.get('')).rejects.toThrow('Auth storage key must not be empty');
+  it('rejects empty storage keys', async () => {
+    const storage = getStorage();
+    await expect(storage.get('')).rejects.toThrow('Storage key must not be empty');
   });
 });

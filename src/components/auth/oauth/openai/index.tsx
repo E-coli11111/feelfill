@@ -1,9 +1,11 @@
 import { useState } from 'react';
 
 import type { BaseAuthPanelProps } from '@/src/components/auth/types';
-
-import { OpenaiDeviceCodePanel } from './device';
 import { Button } from '@/src/components/ui/button';
+import type { OpenAICodexOAuth } from '@/src/services/llm/auth/oauth/openai';
+
+import { OpenaiBrowserOAuthPanel } from './browser';
+import { OpenaiDeviceCodePanel } from './device';
 import {
   Card,
   CardContent,
@@ -13,13 +15,10 @@ import {
   CardTitle,
 } from '@/src/components/ui/card';
 
-/** Props accepted by the OpenAI OAuth authentication panel. */
-export interface OpenaiOAuthPanelProps extends BaseAuthPanelProps {
-  onBack?: () => void;
-}
-
-export function OpenaiOAuthPanel(_props: OpenaiOAuthPanelProps) {
-  const [view, setView] = useState<'overview' | 'device'>('overview');
+/** Displays the available OpenAI OAuth login flows and their active panel. */
+export function OpenaiOAuthPanel({ authorizeMethod }: BaseAuthPanelProps) {
+  const [view, setView] = useState<'overview' | 'browser' | 'device'>('overview');
+  const adapter = authorizeMethod as OpenAICodexOAuth;
 
   return (
     <>
@@ -33,10 +32,16 @@ export function OpenaiOAuthPanel(_props: OpenaiOAuthPanelProps) {
               通过 OpenAI OAuth 授权 FeelFill 使用模型服务。
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm">授权方式：设备码</p>
+          <CardContent className="space-y-2">
+            <p className="text-sm">请选择登录方式：</p>
+            <p className="text-sm text-muted-foreground">
+              浏览器登录操作更直接；设备码适合无法完成浏览器回调的环境。
+            </p>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex-wrap gap-2">
+            <Button type="button" onClick={() => setView('browser')}>
+              使用浏览器登录
+            </Button>
             <Button type="button" onClick={() => setView('device')}>
               使用设备码授权
             </Button>
@@ -44,8 +49,18 @@ export function OpenaiOAuthPanel(_props: OpenaiOAuthPanelProps) {
         </Card>
       )}
 
+      {view === 'browser' && (
+        <OpenaiBrowserOAuthPanel
+          adapter={adapter}
+          onBack={() => setView('overview')}
+        />
+      )}
+
       {view === 'device' && (
-        <OpenaiDeviceCodePanel onBack={() => setView('overview')} />
+        <OpenaiDeviceCodePanel
+          adapter={adapter}
+          onBack={() => setView('overview')}
+        />
       )}
     </>
   );

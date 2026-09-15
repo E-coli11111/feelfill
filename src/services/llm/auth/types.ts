@@ -1,8 +1,9 @@
-import type { LLMProvider } from '../types';
+import type { LLMAuthMethod, LLMProvider } from '../types';
 
 
 /** Common lifecycle implemented by authentication methods. */
 export interface BaseAuthAdapter {
+  readonly type: LLMAuthMethod;
   readonly provider: LLMProvider;
   getCredentials(): Promise<string | null>;
 }
@@ -30,6 +31,6 @@ export interface OAuthAuthAdapter<
 
 /** Authorization adapters grouped by authentication mechanism and provider. */
 export interface AuthMethodRegistry {
-  apiKey: Partial<Record<LLMProvider, ApiKeyAuthAdapter>>;
+  'api-key': Partial<Record<LLMProvider, ApiKeyAuthAdapter>>;
   oauth: Partial<Record<LLMProvider, OAuthAuthAdapter<never>>>;
 }

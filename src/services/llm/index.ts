@@ -1,10 +1,17 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 
-import type { LLMConfig, LLMProvider, ParsedInputFieldResult } from "@/src/services/llm/types";
-import { fileAsBase64 } from "@/src/utils/file-utils";
+import type {
+  ParsedInputFieldResult,
+} from "@/src/services/llm/types";
+import { fileAsBase64 } from "@/src/utils/encode-utils";
 import { buildParseDocumentPrompt, buildParseHtmlPrompt } from "./prompt";
-import { createLLMProvider } from "./provider";
+import { createAuthenticatedLLMProvider } from "./provider";
+import { getStorage } from './storage';
+
+export { listModels } from './models';
+
+const storage = getStorage();
 
 /**
  * Uses LLM to identify fillable fields in webpage HTML.
@@ -13,10 +20,12 @@ import { createLLMProvider } from "./provider";
  * @returns The message returned by the language model.
  */
 export async function parseHTMLField(html: string) {
-  const stored = await browser.storage.local.get("llmConfig");
-  const llmConfig = stored.llmConfig as LLMConfig;
+  const llmConfig = await storage.getLLMConfig();
+  if (!llmConfig) {
+    throw new Error('LLM configuration is not set');
+  }
 
-  const llmProvider = createLLMProvider(llmConfig);
+  const llmProvider = await createAuthenticatedLLMProvider(llmConfig);
   const prompt = buildParseHtmlPrompt(html);
   const response = await llmProvider.invoke([
     new SystemMessage(prompt),
@@ -33,14 +42,16 @@ export async function parseHTMLField(html: string) {
  * @throws If the configured provider does not support document parsing.
  */
 export async function parseDocumentField(field: ParsedInputFieldResult, files: File[]) {
-  const stored = await browser.storage.local.get("llmConfig");
-  const llmConfig = stored.llmConfig as LLMConfig;
+  const llmConfig = await storage.getLLMConfig();
+  if (!llmConfig) {
+    throw new Error('LLM configuration is not set');
+  }
 
   if (llmConfig.provider !== "openai") {
     throw new Error(`Unsupported LLM provider: ${llmConfig.provider} (only "openai" is supported for document parsing yet)`);
   }
 
-  const llmProvider = createLLMProvider(llmConfig);
+  const llmProvider = await createAuthenticatedLLMProvider(llmConfig);
   const prompt = buildParseDocumentPrompt(field);
 
   // Handle file input

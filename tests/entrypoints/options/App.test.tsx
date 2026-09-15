@@ -60,6 +60,20 @@ describe('Options', () => {
     expect(sidebar).toHaveAttribute('data-state', 'collapsed');
   });
 
+  it('opens model settings and routes unauthenticated users back to authentication', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '模型' }));
+
+    expect(screen.getByRole('button', { name: '模型' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('heading', { name: '模型' })).toBeInTheDocument();
+    expect(await screen.findByText('暂无可用模型')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '前往鉴权' }));
+    expect(screen.getByRole('button', { name: '鉴权' })).toHaveAttribute('aria-current', 'page');
+  });
+
   it('starts authorization whenever the device-code panel is entered', async () => {
     const user = userEvent.setup();
     render(<App />);

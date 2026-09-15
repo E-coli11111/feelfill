@@ -1,79 +1,96 @@
-import type { BaseStorage } from '@/src/services/llm/types';
+import { parseStoredLLMConfig } from '@/src/services/llm/config';
+import type { BaseStorage, LLMConfig } from '@/src/services/llm/types';
 
-/** Prefix used to isolate authentication entries from other extension storage. */
-export const AUTH_STORAGE_PREFIX = 'llmAuth:';
+const LLM_CONFIG_STORAGE_KEY = 'llmConfig';
 
-function toStorageKey(key: string): string {
+function validateStorageKey(key: string): void {
   if (!key) {
-    throw new Error('Auth storage key must not be empty');
+    throw new Error('Storage key must not be empty');
   }
-
-  return `${AUTH_STORAGE_PREFIX}${encodeURIComponent(key)}`;
 }
 
-function fromStorageKey(storageKey: string): string | null {
-  if (!storageKey.startsWith(AUTH_STORAGE_PREFIX)) {
-    return null;
-  }
-
-  try {
-    return decodeURIComponent(storageKey.slice(AUTH_STORAGE_PREFIX.length));
-  } catch {
-    return null;
-  }
+/** Extension-local storage operations shared by application consumers. */
+export interface LLMStorage extends BaseStorage {
+  getLLMConfig(): Promise<LLMConfig | null>;
+  setLLMConfig(config: unknown): Promise<void>;
 }
 
 /**
- * Persists serialized authentication values in extension-local browser storage.
+ * Persists string values and model configuration in extension-local storage.
  *
- * Values remain strings so callers can own their credential JSON schema and
- * migrations. Each logical key is stored separately to avoid overwriting
- * unrelated credentials during concurrent writes.
+ * String keys are used exactly as supplied so consumers own their namespaces.
  */
-export class BrowserStorage implements BaseStorage {
+class BrowserStorage implements LLMStorage {
   /**
-   * Reads a serialized authentication value.
+   * Reads a string value by its exact storage key.
    *
-   * @param key Logical credential key, usually a provider ID.
-   * @returns The stored value, or `null` when the entry is absent or invalid.
+   * @param key Complete key defined by the consumer.
+   * @returns The stored string, or `null` when absent or not a string.
    */
   async get(key: string): Promise<string | null> {
-    const storageKey = toStorageKey(key);
-    const stored = await browser.storage.local.get(storageKey);
-    const value = stored[storageKey];
+    validateStorageKey(key);
+    const stored = await browser.storage.local.get(key);
+    const value = stored[key];
     return typeof value === 'string' ? value : null;
   }
 
   /**
-   * Saves a serialized authentication value.
+   * Saves a string value under the consumer's exact storage key.
    *
-   * @param key Logical credential key, usually a provider ID.
-   * @param value Serialized credential JSON.
+   * @param key Complete key defined by the consumer.
+   * @param value String value to persist.
    */
   async set(key: string, value: string): Promise<void> {
-    await browser.storage.local.set({ [toStorageKey(key)]: value });
+    validateStorageKey(key);
+    await browser.storage.local.set({ [key]: value });
   }
 
   /**
-   * Removes one authentication entry.
+   * Removes one entry by its exact storage key.
    *
-   * @param key Logical credential key to remove.
+   * @param key Complete key defined by the consumer.
    */
   async remove(key: string): Promise<void> {
-    await browser.storage.local.remove(toStorageKey(key));
+    validateStorageKey(key);
+    await browser.storage.local.remove(key);
   }
 
   /**
-   * Lists all logical authentication keys in deterministic order.
+   * Lists keys whose stored values are strings in deterministic order.
    *
-   * @returns Stored logical keys without the internal namespace prefix.
+   * @returns Complete storage keys without namespace transformation.
    */
   async list(): Promise<string[]> {
     const stored = await browser.storage.local.get(null);
 
-    return Object.keys(stored)
-      .map(fromStorageKey)
-      .filter((key): key is string => key !== null)
+    return Object.entries(stored)
+      .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+      .map(([key]) => key)
       .sort();
   }
+
+  /** Returns the validated stored LLM configuration, or `null` when unset. */
+  async getLLMConfig(): Promise<LLMConfig | null> {
+    const stored = await browser.storage.local.get(LLM_CONFIG_STORAGE_KEY);
+    const value = stored[LLM_CONFIG_STORAGE_KEY];
+    if (value === undefined) {
+      return null;
+    }
+
+    return parseStoredLLMConfig(value);
+  }
+
+  /** Validates and persists the active language model configuration. */
+  async setLLMConfig(config: unknown): Promise<void> {
+    await browser.storage.local.set({
+      [LLM_CONFIG_STORAGE_KEY]: parseStoredLLMConfig(config),
+    });
+  }
+}
+
+const storage = new BrowserStorage();
+
+/** Returns the shared extension-local storage instance. */
+export function getStorage(): LLMStorage {
+  return storage;
 }

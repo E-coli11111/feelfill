@@ -11,7 +11,11 @@ export default defineConfig({
   manifest: {
     name: 'FillFeel',
     description: 'A React + TypeScript browser extension starter built with WXT.',
-    permissions: ['storage'],
-    host_permissions: ['https://chatgpt.com/*'],
+    permissions: ['storage', 'tabs'],
+    host_permissions: [
+      'https://auth.openai.com/*',
+      'https://chatgpt.com/*',
+      'http://localhost:1455/*',
+    ],
   },
 });

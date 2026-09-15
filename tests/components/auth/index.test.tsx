@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import AuthPanel from '@/src/components/auth';
-import { SUPPORTED_AUTH_METHODS } from '@/src/services/llm/auth/registry';
+import { SUPPORTED_AUTH_METHODS } from '@/src/services/llm/registry';
 
 describe('AuthPanel', () => {
   afterEach(() => {
@@ -37,7 +37,41 @@ describe('AuthPanel', () => {
     await user.click(await screen.findByRole('button', { name: '登录' }));
 
     expect(screen.getByRole('button', { name: '返回登录方式' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '使用浏览器登录' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '使用设备码授权' })).toBeInTheDocument();
+  });
+
+  it('starts and completes browser OAuth from the OpenAI login panel', async () => {
+    vi.spyOn(
+      SUPPORTED_AUTH_METHODS.oauth.openai,
+      'getCredentials',
+    ).mockResolvedValue(null);
+    const authorize = vi.spyOn(
+      SUPPORTED_AUTH_METHODS.oauth.openai,
+      'authorize',
+    ).mockImplementation(async (options) => {
+      if (options.method !== 'browser') {
+        throw new Error('Unexpected authorization method.');
+      }
+
+      options.onAuthorizeUrl?.('https://auth.openai.com/oauth/authorize');
+      return {
+        access_token: 'access-token',
+        id_token: 'id-token',
+        refresh_token: 'refresh-token',
+      };
+    });
+    const user = userEvent.setup();
+
+    render(<AuthPanel />);
+    await user.click(await screen.findByRole('button', { name: '登录' }));
+    await user.click(screen.getByRole('button', { name: '使用浏览器登录' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('OpenAI 授权成功。');
+    expect(authorize).toHaveBeenCalledWith(expect.objectContaining({
+      method: 'browser',
+      onAuthorizeUrl: expect.any(Function),
+    }));
   });
 
   it('isolates errors while reading a login status', async () => {

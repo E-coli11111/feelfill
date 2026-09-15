@@ -21,6 +21,7 @@ describe('ApiKeyAuth', () => {
     await auth.setCredentials('test-api-key');
 
     expect(await auth.getCredentials()).toBe('test-api-key');
+    expect(await auth.getProviderCredential()).toBe('test-api-key');
   });
 
   it('isolates API keys by provider', async () => {

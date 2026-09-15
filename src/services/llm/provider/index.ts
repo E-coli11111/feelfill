@@ -7,6 +7,7 @@ import { ChatOpenRouter } from "@langchain/openrouter";
 import { ChatXAI } from "@langchain/xai";
 
 import type { LLMConfig } from "@/src/services/llm/types";
+import { getProviderAuthMethod } from "@/src/services/llm/registry";
 import { createOpenAICodexChatModel } from "./openai-codex";
 
 /**
@@ -18,12 +19,23 @@ import { createOpenAICodexChatModel } from "./openai-codex";
  */
 export function createLLMProvider(
   config: LLMConfig,
+  credential: string,
 ): BaseChatModel {
+  if (config.provider === "openai" && config.auth_method === "oauth") {
+    return createOpenAICodexChatModel(config, credential);
+  }
+
+  if (config.auth_method !== "api-key") {
+    throw new Error(
+      `Unsupported authentication method for LLM provider: ${config.provider}/${config.auth_method}`,
+    );
+  }
+
   switch (config.provider) {
     case "openai":
       return new ChatOpenAI({
         model: config.model_name,
-        apiKey: config.api_key,
+        apiKey: credential,
         temperature: config.temperature,
         maxTokens: config.max_tokens,
         topP: config.top_p,
@@ -31,12 +43,10 @@ export function createLLMProvider(
         presencePenalty: config.presence_penalty,
         useResponsesApi: true
       });
-    case "openai-codex":
-      return createOpenAICodexChatModel(config);
     case "anthropic":
       return new ChatAnthropic({
         model: config.model_name,
-        anthropicApiKey: config.api_key,
+        anthropicApiKey: credential,
         anthropicApiUrl: config.base_url,
         temperature: config.temperature,
         maxTokens: config.max_tokens,
@@ -45,7 +55,7 @@ export function createLLMProvider(
     case "google":
       return new ChatGoogle({
         model: config.model_name ?? "gemini-3.7-flash",
-        apiKey: config.api_key,
+        apiKey: credential,
         endpoint: config.base_url,
         temperature: config.temperature,
         maxOutputTokens: config.max_tokens,
@@ -56,7 +66,7 @@ export function createLLMProvider(
     case "openrouter":
       return new ChatOpenRouter({
         model: config.model_name,
-        apiKey: config.api_key,
+        apiKey: credential,
         baseURL: config.base_url,
         temperature: config.temperature,
         maxTokens: config.max_tokens,
@@ -67,7 +77,7 @@ export function createLLMProvider(
     case "xai":
       return new ChatXAI({
         model: config.model_name,
-        apiKey: config.api_key,
+        apiKey: credential,
         baseURL: config.base_url,
         temperature: config.temperature,
         maxTokens: config.max_tokens,
@@ -75,7 +85,7 @@ export function createLLMProvider(
     case "custom":
       return new ChatOpenAI({
         model: config.model_name,
-        apiKey: config.api_key,
+        apiKey: credential,
         temperature: config.temperature,
         maxTokens: config.max_tokens,
         topP: config.top_p,
@@ -88,4 +98,32 @@ export function createLLMProvider(
     default:
       throw new Error(`Unsupported LLM provider: ${String(config.provider)}`);
   }
+}
+
+/**
+ * Resolves the configured provider's credential through its auth adapter and
+ * creates a ready-to-use LangChain chat model.
+ *
+ * @param config Provider and generation settings stored by the extension.
+ * @returns A provider client configured with the separately stored credential.
+ * @throws If no usable credential has been configured for the provider.
+ */
+export async function createAuthenticatedLLMProvider(
+  config: LLMConfig,
+): Promise<BaseChatModel> {
+  const authMethod = getProviderAuthMethod(config.provider, config.auth_method);
+  if (!authMethod) {
+    throw new Error(
+      `Unsupported authentication method for LLM provider: ${config.provider}/${config.auth_method}`,
+    );
+  }
+  const credential = await authMethod.getCredentials();
+
+  if (!credential) {
+    throw new Error(
+      `No credentials configured for LLM provider: ${config.provider}/${config.auth_method}`,
+    );
+  }
+
+  return createLLMProvider(config, credential);
 }

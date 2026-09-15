@@ -13,12 +13,12 @@ type MockModel = {
 };
 
 const mocks = vi.hoisted(() => ({
-  createLLMProvider: vi.fn<(config: LLMConfig) => MockModel>(),
+  createAuthenticatedLLMProvider: vi.fn<(config: LLMConfig) => Promise<MockModel>>(),
   invoke: vi.fn<(messages: BaseMessage[]) => Promise<MockModelResponse>>(),
 }));
 
 vi.mock('@/src/services/llm/provider', () => ({
-  createLLMProvider: mocks.createLLMProvider,
+  createAuthenticatedLLMProvider: mocks.createAuthenticatedLLMProvider,
 }));
 
 import { parseDocumentField, parseHTMLField } from '@/src/services/llm';
@@ -27,11 +27,12 @@ describe('LLM service', () => {
   beforeEach(() => {
     fakeBrowser.reset();
     vi.clearAllMocks();
-    mocks.createLLMProvider.mockReturnValue({ invoke: mocks.invoke });
+    mocks.createAuthenticatedLLMProvider.mockResolvedValue({ invoke: mocks.invoke });
   });
 
   it('builds and sends an HTML field parsing request with the stored configuration', async () => {
     const config: LLMConfig = {
+      auth_method: 'api-key',
       provider: 'anthropic',
       model_name: 'test-model',
       temperature: 0,
@@ -45,7 +46,7 @@ describe('LLM service', () => {
     const result = await parseHTMLField(html);
 
     expect(result).toBe(response);
-    expect(mocks.createLLMProvider).toHaveBeenCalledWith(config);
+    expect(mocks.createAuthenticatedLLMProvider).toHaveBeenCalledWith(config);
     expect(mocks.invoke).toHaveBeenCalledOnce();
 
     const messages = mocks.invoke.mock.calls[0]?.[0];
@@ -57,6 +58,7 @@ describe('LLM service', () => {
 
   it('converts files to attachments before asking OpenAI to extract document fields', async () => {
     const config: LLMConfig = {
+      auth_method: 'api-key',
       provider: 'openai',
       model_name: 'test-model',
     };
@@ -78,7 +80,7 @@ describe('LLM service', () => {
     const result = await parseDocumentField(fields, [file]);
 
     expect(result).toBe(response);
-    expect(mocks.createLLMProvider).toHaveBeenCalledWith(config);
+    expect(mocks.createAuthenticatedLLMProvider).toHaveBeenCalledWith(config);
 
     const messages = mocks.invoke.mock.calls[0]?.[0];
     expect(messages).toHaveLength(2);
@@ -107,6 +109,7 @@ describe('LLM service', () => {
 
   it('rejects document parsing for providers that are not yet supported', async () => {
     const config: LLMConfig = {
+      auth_method: 'api-key',
       provider: 'google',
       model_name: 'test-model',
     };
@@ -117,7 +120,8 @@ describe('LLM service', () => {
     await expect(parseDocumentField(fields, [])).rejects.toThrow(
       'Unsupported LLM provider: google (only "openai" is supported for document parsing yet)',
     );
-    expect(mocks.createLLMProvider).not.toHaveBeenCalled();
+    expect(mocks.createAuthenticatedLLMProvider).not.toHaveBeenCalled();
     expect(mocks.invoke).not.toHaveBeenCalled();
   });
+
 });
