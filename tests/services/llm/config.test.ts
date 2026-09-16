@@ -1,28 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseStoredLLMConfig } from '@/src/services/llm/config';
+import { SUPPORTED_MODELS } from '@/src/services/llm/registry';
 
 describe('stored LLM configuration', () => {
   it('keeps provider and authentication method as independent dimensions', () => {
+    const model = SUPPORTED_MODELS.openai[0];
+
     expect(parseStoredLLMConfig({
       auth_method: 'oauth',
       provider: 'openai',
-      model_name: 'codex-test',
+      model,
     })).toMatchObject({
       auth_method: 'oauth',
       provider: 'openai',
-      model_name: 'codex-test',
+      model,
     });
   });
 
-  it('migrates the legacy OpenAI Codex provider configuration', () => {
+  it('preserves a complete model object', () => {
+    const model = SUPPORTED_MODELS.openai[0];
+
     expect(parseStoredLLMConfig({
-      provider: 'openai-codex',
-      model_name: 'codex-test',
-    })).toMatchObject({
-      auth_method: 'oauth',
+      auth_method: 'api-key',
       provider: 'openai',
-      model_name: 'codex-test',
+      model,
+    })).toEqual({
+      auth_method: 'api-key',
+      provider: 'openai',
+      model,
     });
   });
 

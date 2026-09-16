@@ -183,7 +183,7 @@ export class OpenAICodexOAuth implements OAuthAuthAdapter<
     }
   }
 
-  /** Returns the serialized Codex OAuth credential, if one is stored. */
+  /** Returns the validated access token, if one is stored. */
   async getCredentials(): Promise<string | null> {
     const serialized = await this.storage.get(this.storageKey);
 

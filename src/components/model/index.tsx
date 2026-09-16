@@ -90,7 +90,7 @@ export function ModelPanel({ onRequestAuthentication }: ModelPanelProps) {
     availableModels[selection.provider] ?? {},
   ) as LLMAuthMethod[];
   const models = availableModels[selection.provider]?.[selection.auth_method] ?? [];
-  const selectedModel = models.find((model) => model.id === selection.model_name);
+  const selectedModel = models.find((model) => model.id === selection.model.id);
   const disabled = status === 'saving';
 
   return (
@@ -142,7 +142,7 @@ export function ModelPanel({ onRequestAuthentication }: ModelPanelProps) {
           <select
             aria-label="模型"
             className={selectClassName}
-            value={selection.model_name}
+            value={selection.model.id}
             disabled={disabled}
             onChange={(event) => selectModel(event.target.value)}
           >

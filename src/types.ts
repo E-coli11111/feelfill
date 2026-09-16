@@ -1,4 +1,7 @@
-import type { ParsedInputFieldResult } from '@/src/services/llm/types';
+import type {
+  FilledInputFieldResult,
+  ParsedInputFieldResult,
+} from '@/src/services/llm/types';
 
 export type BackgroundRequest = 
   | { type: 'SET', setting: object } // set particular data in setting
@@ -7,12 +10,12 @@ export type BackgroundRequest =
 
 export type BackgroundResponse = 
   | { type: 'SET', success: boolean, error?: string, data?: object } // set particular data in setting
-  | { type: 'LOCATE', success: boolean, error?: string, data?: string } // locate input element in the page TODO
-  | { type: 'FILL', success: boolean, error?: string, data?: object } // fill input element in the page TODO
+  | { type: 'LOCATE', success: boolean, error?: string, data?: ParsedInputFieldResult }
+  | { type: 'FILL', success: boolean, error?: string, data?: FilledInputFieldResult }
 
 export type ContentRequest =
-  | { type: 'FILL_PAGE' } // get the HTML content of the current page
+  | { type: 'FILL_PAGE', files: File[] } // get the HTML content of the current page
 
 export type ContentResponse =
-  | { type: 'FILL_PAGE', success: boolean, error?: string } // return if the fill operation was successful or not
+  | { type: 'FILL_PAGE', success: boolean, error?: string, data?: string } // return if the fill operation was successful or not
 

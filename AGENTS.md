@@ -14,7 +14,7 @@
 - UI 框架：React 19。
 - 扩展框架：WXT 0.21。
 - 样式方案：Tailwind CSS 4，通过 `@tailwindcss/vite` 接入
-- LLM 集成：LangChain；依赖中包含 Zod，但当前代码尚未使用。
+- LLM 集成：LangChain；LLM Service 直接解析并返回结构化字段结果。
 - 包管理器：npm；必须保留并同步更新 `package-lock.json`。
 
 ## 设计目标
@@ -39,7 +39,8 @@ feelfill/
 │  │  ├─ main.tsx            # Options React 应用与逻辑
 │  │  └─ style.css           # Options Tailwind/CSS 入口
 │  └─ content/
-│     ├─ index.tsx           # 当前只注册消息监听器
+│     ├─ index.tsx           # 注册消息监听器并编排字段识别、文档解析与页面填充
+│     ├─ fill.ts             # 根据字段目标把文档解析结果写入宿主页面
 │     ├─ App.tsx             # 已存在但尚未由 Content Script 挂载
 │     └─ style.css
 ├─ src/
@@ -75,8 +76,8 @@ feelfill/
 `entrypoints/background.ts`：
 
 - 扩展首次安装时将 `enabled` 写入 `browser.storage.local`。
-- `LOCATE` 消息调用 `parseHTMLField`，并返回模型消息的文本。
-- `FILL` 消息调用 `parseDocumentField`，但仍返回“暂未实现填充功能”。
+- `LOCATE` 消息调用 `parseHTMLField`，并返回结构化的页面字段识别结果。
+- `FILL` 消息调用 `parseDocumentField`，并返回结构化的文档字段提取结果。
 - `SET` 分支尚未实现。
 - 当前没有处理 `PING` 消息；Popup 不再发送该消息。
 - Background 是 Manifest V3 Service Worker；不要依赖长期驻留的内存状态。
@@ -88,7 +89,7 @@ feelfill/
 - 读取并切换 `browser.storage.local.enabled`。
 - 使用 shadcn/ui 默认浅色主题和卡片布局，默认宽度 360px，窄视口收缩；开启后显示文件选择框和已选附件卡片。
 - 开关读取与保存期间禁用操作，失败时显示提示；通过 `browser.runtime.openOptionsPage()` 打开设置。
-- 选择文件后显示文件名，仅保存在当前 Popup 内存中，关闭开关时清空；尚未接入解析与填充，不发送文件或页面消息。
+- 选择文件后显示文件名，仅保存在当前 Popup 内存中，关闭开关时清空；随后向 Content Script 发送 `FILL_PAGE`，由 Content Script 完成字段识别、文档解析和页面填充链路。
 - Popup 关闭后 React 内存状态会丢失；需要持久化的状态应放入扩展存储。
 
 ### Options
@@ -105,34 +106,34 @@ feelfill/
 `entrypoints/content/`：
 
 - 匹配 `http://*/*` 和 `https://*/*`。
-- 加载时保存一次 `document.documentElement.outerHTML` 快照。
-- 处理 `FILL_PAGE` 消息，并在首次处理时向 Background 发送 `LOCATE`。
+- 处理 `FILL_PAGE` 消息时读取当前 `document.documentElement.outerHTML`，依次向 Background 发送 `LOCATE` 和 `FILL`。
+- 使用共享的结构化结果类型，并通过字段 targets 定位宿主页面控件；填充逻辑支持原生文本控件、select、radio、checkbox、checkbox-group 和简单 contenteditable，逐字段汇总成功与失败结果。
 - 尚未挂载 `App.tsx`，也未使用 `createShadowRootUi`。
 - 尚未监听 `browser.storage.onChanged`，不会根据 `enabled` 动态挂载或移除 UI。
-- 尚未实现把提取结果写入宿主页面字段。
 
 以后接入 Content UI 时应使用 Shadow DOM，并保持 `cssInjectionMode: 'ui'`。扩展的 CSS、事件和 DOM 选择器不得污染宿主网页。
 
 ### LLM 服务
 
 - `BrowserStorage` 是由 `getStorage()` 提供的单例，直接使用消费者传入的完整键读写字符串值，不添加、编码或解析认证前缀；认证命名空间及具体键由各认证 Adapter 定义。模型配置通过该单例的 `getLLMConfig()` / `setLLMConfig()` 读写 `browser.storage.local.llmConfig`，并在存储边界调用配置 Schema 做运行时校验。
+- `LLMConfig.model` 保存完整的模型元数据，Provider 使用其中的 `id` 发起请求。
 - `listModels()` 按 Provider 和认证方式返回 `SUPPORTED_MODELS` 中已启用的模型；只有存在有效凭据的认证方式会出现在结果中，未登录或凭据损坏的认证方式会被省略。
 - Provider 工厂支持 OpenAI、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint；`provider` 只表示服务商，`auth_method` 独立表示 `api-key` 或 `oauth`。创建模型时通过两者的组合查找 Auth Adapter 并选择具体传输实现。
 - OpenAI 使用 API Key 时创建标准 OpenAI Provider，使用 OAuth 时创建基于 LangChain Responses API 的 Codex Provider，适配 `https://chatgpt.com/backend-api/codex/responses` 并从 OAuth JWT 提取 `chatgpt_account_id`。
-- OpenAI OAuth 通过统一的 `OpenAICodexOAuth` Adapter 实现 device-code 与浏览器 Authorization Code + PKCE 流程，两者复用 Token 交换、持久化、刷新和撤销逻辑；Adapter 自行定义完整凭据键，并兼容迁移旧的 OpenAI Codex access token 条目。浏览器流程通过专用标签页捕获 `localhost:1455` 回调并校验 `state`，不在扩展内启动本地 HTTP 服务。Options 已通过统一的 OpenAI 登录面板提供浏览器和设备码两种入口，Popup 登录 UI 与消息协议尚未接入。
+- OpenAI OAuth 通过统一的 `OpenAICodexOAuth` Adapter 实现 device-code 与浏览器 Authorization Code + PKCE 流程，两者复用 Token 交换、持久化、刷新和撤销逻辑；Adapter 自行定义完整凭据键。浏览器流程通过专用标签页捕获 `localhost:1455` 回调并校验 `state`，不在扩展内启动本地 HTTP 服务。Options 已通过统一的 OpenAI 登录面板提供浏览器和设备码两种入口，Popup 登录 UI 与消息协议尚未接入。
 - 各认证 Adapter 使用自行定义的带 `llmAuth:` 前缀的完整 `browser.storage.local` 键保存序列化凭据，并通过 `BrowserStorage` 读取、写入和删除。
 - `ApiKeyAuth` 实现 API Key 的本地校验、按 Provider 隔离存取和清除，其完整存储键包含 `api-key` 命名空间，避免与 OAuth 凭据冲突。
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
+- LLM 调用在所选模型声明支持 `stream` 时优先使用流式接口并合并消息块，否则使用普通 `invoke()`。
 - Prompt 已包含把网页和文档内容视为不可信数据的约束。
-- 模型响应当前仍以原始 LangChain 消息返回，尚未使用 Zod 做结构化解析和运行时校验。
+- LLM Service 在服务边界解析模型 JSON，并分别返回 `ParsedInputFieldResult` 和 `FilledInputFieldResult` 结构化对象。
 
 ## 已知缺口与基线状态
 
 修复对应问题后，应同步删除或更新本节：
 
-- Popup 尚未接入 Background 和 Content Script 的填充消息协议，后续需统一 `FILL_PAGE` 及 `FILL` 的负载。
 - `File[]` 是否能按预期通过扩展消息传输尚未验证；确定协议时优先采用明确、可序列化且有共享类型的 DTO。
-- 页面字段识别、文件字段提取和实际 DOM 填充尚未形成完整闭环。
+- 页面字段识别、文件字段提取和原生 DOM 控件填充已形成基础闭环；自定义组件、复杂富文本、Shadow DOM、iframe 和文件控件仍未覆盖。
 - Content React UI 与 `enabled` 动态开关尚未接入。
 - 测试基础设施已经建立；LLM Service 测试位于 `tests/service/llm/index.test.ts`，Popup 交互测试位于 `tests/entrypoints/popup/`，共享组件测试位于 `tests/components/`。
 

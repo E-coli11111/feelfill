@@ -1,17 +1,25 @@
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import {
+  HumanMessage,
+  SystemMessage,
+  type BaseMessage,
+  type BaseMessageChunk,
+} from '@langchain/core/messages';
 
 
 import type {
   ParsedInputFieldResult,
+  FilledInputFieldResult,
 } from "@/src/services/llm/types";
 import { fileAsBase64 } from "@/src/utils/encode-utils";
 import { buildParseDocumentPrompt, buildParseHtmlPrompt } from "./prompt";
 import { createAuthenticatedLLMProvider } from "./provider";
 import { getStorage } from './storage';
-
-export { listModels } from './models';
+import { invokeModel } from './models';
 
 const storage = getStorage();
+
+export { listModels } from './models';
 
 /**
  * Uses LLM to identify fillable fields in webpage HTML.
@@ -19,7 +27,7 @@ const storage = getStorage();
  * @param html The webpage HTML snapshot to analyze.
  * @returns The message returned by the language model.
  */
-export async function parseHTMLField(html: string) {
+export async function parseHTMLField(html: string): Promise<ParsedInputFieldResult> {
   const llmConfig = await storage.getLLMConfig();
   if (!llmConfig) {
     throw new Error('LLM configuration is not set');
@@ -27,10 +35,20 @@ export async function parseHTMLField(html: string) {
 
   const llmProvider = await createAuthenticatedLLMProvider(llmConfig);
   const prompt = buildParseHtmlPrompt(html);
-  const response = await llmProvider.invoke([
-    new SystemMessage(prompt),
-  ]);
-  return response;
+  console.log('LLM prompt for parseHTMLField:', prompt);
+  try {
+    const response = await invokeModel(
+      llmProvider,
+      [new SystemMessage(prompt)],
+      llmConfig.model?.capabilities.stream === true,
+    );
+    const result: ParsedInputFieldResult = JSON.parse(response);
+
+    return result;
+  }catch (error) {
+    console.error('Error invoking LLM provider for parseHTMLField:', error);
+    throw error;
+  }
 }
 
 /**
@@ -41,7 +59,7 @@ export async function parseHTMLField(html: string) {
  * @returns The message returned by the language model.
  * @throws If the configured provider does not support document parsing.
  */
-export async function parseDocumentField(field: ParsedInputFieldResult, files: File[]) {
+export async function parseDocumentField(field: ParsedInputFieldResult, files: File[]): Promise<FilledInputFieldResult> {
   const llmConfig = await storage.getLLMConfig();
   if (!llmConfig) {
     throw new Error('LLM configuration is not set');
@@ -71,7 +89,7 @@ export async function parseDocumentField(field: ParsedInputFieldResult, files: F
   }
 
   // TODO: Structure output
-  const response = await llmProvider.invoke([
+  const response = await invokeModel(llmProvider, [
     new SystemMessage(prompt),
     new HumanMessage({
       contentBlocks: [
@@ -82,6 +100,8 @@ export async function parseDocumentField(field: ParsedInputFieldResult, files: F
         ...attachments
       ]
     }),
-  ]);
-  return response;
+  ], llmConfig.model?.capabilities.stream === true);
+
+  const result: FilledInputFieldResult = JSON.parse(response);
+  return result;
 }

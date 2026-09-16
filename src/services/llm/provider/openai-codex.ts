@@ -76,14 +76,14 @@ export function createOpenAICodexChatModel(
   if (!accessToken) {
     throw new Error("OpenAI Codex requires an OAuth access token");
   }
-  if (!config.model_name) {
+  if (!config.model) {
     throw new Error("OpenAI Codex requires a model name");
   }
 
   const accountId = extractCodexAccountId(accessToken);
 
   return new ChatOpenAI({
-    model: config.model_name,
+    model: config.model.id,
     apiKey: accessToken,
     temperature: config.temperature,
     maxTokens: config.max_tokens,

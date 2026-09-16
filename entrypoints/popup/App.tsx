@@ -18,7 +18,7 @@ export default function App() {
   const {
     enabled,
     error,
-    file,
+    files,
     loading,
     openingSettings,
     saving,
@@ -62,14 +62,16 @@ export default function App() {
               <Uploader
                 multiple
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                text={file ? '重新选择文件' : '点击上传文件'}
+                text={files && files.length > 0 ? '重新选择文件' : '点击上传文件'}
                 onChange={selectFile}
               />
               <p className="text-center text-xs text-muted-foreground">支持 PDF、Word、JPG、PNG</p>
-              {file && (
+              {files && files.length > 0 && (
                 <div role="status" className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm">
                   <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 break-all">已选择：{file.name}</span>
+                  {files.map((file) => (
+                    <span key={file.name} className="min-w-0 break-all">已选择：{file.name}</span>
+                  ))}
                 </div>
               )}
             </section>

@@ -34,7 +34,7 @@ export function createLLMProvider(
   switch (config.provider) {
     case "openai":
       return new ChatOpenAI({
-        model: config.model_name,
+        model: config.model?.id,
         apiKey: credential,
         temperature: config.temperature,
         maxTokens: config.max_tokens,
@@ -45,7 +45,7 @@ export function createLLMProvider(
       });
     case "anthropic":
       return new ChatAnthropic({
-        model: config.model_name,
+        model: config.model?.id,
         anthropicApiKey: credential,
         anthropicApiUrl: config.base_url,
         temperature: config.temperature,
@@ -54,7 +54,7 @@ export function createLLMProvider(
       });
     case "google":
       return new ChatGoogle({
-        model: config.model_name ?? "gemini-3.7-flash",
+        model: config.model?.id ?? "gemini-3.7-flash",
         apiKey: credential,
         endpoint: config.base_url,
         temperature: config.temperature,
@@ -65,7 +65,7 @@ export function createLLMProvider(
       });
     case "openrouter":
       return new ChatOpenRouter({
-        model: config.model_name,
+        model: config.model?.id,
         apiKey: credential,
         baseURL: config.base_url,
         temperature: config.temperature,
@@ -76,7 +76,7 @@ export function createLLMProvider(
       });
     case "xai":
       return new ChatXAI({
-        model: config.model_name,
+        model: config.model?.id,
         apiKey: credential,
         baseURL: config.base_url,
         temperature: config.temperature,
@@ -84,7 +84,7 @@ export function createLLMProvider(
       });
     case "custom":
       return new ChatOpenAI({
-        model: config.model_name,
+        model: config.model?.id,
         apiKey: credential,
         temperature: config.temperature,
         maxTokens: config.max_tokens,

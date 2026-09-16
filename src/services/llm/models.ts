@@ -1,3 +1,11 @@
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import {
+  HumanMessage,
+  SystemMessage,
+  type BaseMessage,
+  type BaseMessageChunk,
+} from '@langchain/core/messages';
+
 import { getProviderAuthMethod, SUPPORTED_MODELS } from './registry';
 import type {
   AuthenticatedLLMModels,
@@ -36,7 +44,7 @@ export async function listModels(): Promise<AuthenticatedLLMModels> {
       }
 
       try {
-        const credential = await authAdapter.getProviderCredential();
+        const credential = await authAdapter.getCredentials();
         if (credential) {
           providerModels[authMethod] = matchingModels;
         }
@@ -51,4 +59,27 @@ export async function listModels(): Promise<AuthenticatedLLMModels> {
   }
 
   return availableModels;
+}
+
+export async function invokeModel(
+  model: BaseChatModel,
+  messages: BaseMessage[],
+  supportsStreaming: boolean,
+): Promise<string> {
+  let response: BaseMessageChunk | undefined;
+  if (!supportsStreaming) {
+    response = await model.invoke(messages);
+  }else {
+    const stream = await model.stream(messages);
+
+    for await (const chunk of stream) {
+      response = response ? response.concat(chunk) : chunk;
+    }
+
+    if (!response) {
+      throw new Error('LLM returned an empty stream');
+    }
+  }
+  
+  return response.text;
 }

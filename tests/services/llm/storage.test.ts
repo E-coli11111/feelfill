@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 
 import { getStorage } from '@/src/services/llm/storage';
+import { SUPPORTED_MODELS } from '@/src/services/llm/registry';
 
 describe('LLM configuration storage', () => {
   beforeEach(() => {
@@ -16,17 +17,18 @@ describe('LLM configuration storage', () => {
 
   it('validates model configuration when saving and loading it', async () => {
     const storage = getStorage();
+    const model = SUPPORTED_MODELS.openai[2];
     await storage.setLLMConfig({
       auth_method: 'oauth',
       provider: 'openai',
-      model_name: 'gpt-5.6-terra',
+      model,
       temperature: 0.2,
     });
 
     await expect(storage.getLLMConfig()).resolves.toEqual({
       auth_method: 'oauth',
       provider: 'openai',
-      model_name: 'gpt-5.6-terra',
+      model,
       temperature: 0.2,
     });
     await expect(

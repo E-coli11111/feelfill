@@ -62,11 +62,7 @@ describe('OpenAICodexOAuth device-code flow', () => {
       'https://auth.openai.com/deviceauth/callback',
     );
     expect(exchangeBody.get('code_verifier')).toBe('code-verifier');
-    expect(await adapter.getCredentials()).toBe(JSON.stringify({
-      access_token: 'access-token',
-      id_token: 'id-token',
-      refresh_token: 'refresh-token',
-    }));
+    expect(await adapter.getCredentials()).toBe('access-token');
   });
 
   it('stops without polling after the device code expires', async () => {
@@ -256,7 +252,6 @@ describe('OpenAICodexOAuth browser flow', () => {
       client_id: 'app_EMoamEEZ73f0CkXaXp7hrann',
     });
     expect(storage.remove).toHaveBeenCalledWith('llmAuth:openai%3Aoauth');
-    expect(storage.remove).toHaveBeenCalledWith('llmAuth:openai-codex%3Aaccess_token');
   });
 
   it('exposes only the validated access token to the provider layer', async () => {
@@ -264,26 +259,12 @@ describe('OpenAICodexOAuth browser flow', () => {
     storage.get.mockResolvedValue(JSON.stringify(CREDENTIAL));
     const adapter = new OpenAICodexOAuth(storage);
 
-    await expect(adapter.getProviderCredential()).resolves.toBe('access-token');
+    await expect(adapter.getCredentials()).resolves.toBe('access-token');
 
     storage.get.mockResolvedValue('{invalid json');
-    await expect(adapter.getProviderCredential()).rejects.toThrow(
+    await expect(adapter.getCredentials()).rejects.toThrow(
       'Stored OpenAI Codex OAuth credential is invalid.',
     );
   });
 
-  it('migrates the legacy Codex-specific storage key on read', async () => {
-    const storage = createStorageMock();
-    storage.get.mockImplementation(async (key: string) => (
-      key === 'llmAuth:openai-codex%3Aaccess_token' ? JSON.stringify(CREDENTIAL) : null
-    ));
-    const adapter = new OpenAICodexOAuth(storage);
-
-    await expect(adapter.getCredentials()).resolves.toBe(JSON.stringify(CREDENTIAL));
-    expect(storage.set).toHaveBeenCalledWith(
-      'llmAuth:openai%3Aoauth',
-      JSON.stringify(CREDENTIAL),
-    );
-    expect(storage.remove).toHaveBeenCalledWith('llmAuth:openai-codex%3Aaccess_token');
-  });
 });

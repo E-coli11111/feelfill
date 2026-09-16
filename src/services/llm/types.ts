@@ -29,6 +29,7 @@ export interface LLMModel {
     text: boolean;
     image: boolean;
     file: boolean;
+    stream: boolean;
     structured_output: boolean;
   };
 
@@ -57,7 +58,10 @@ export type AuthenticatedLLMModels = Partial<
 export interface LLMConfig {
   /** Authentication method used to access the provider. */
   auth_method: LLMAuthMethod;
-  
+
+  /** Model selected for generation. */
+  model?: LLMModel;
+
   /** Optional base URL for a custom or provider-specific API endpoint. */
   base_url?: string;
 
@@ -66,9 +70,6 @@ export interface LLMConfig {
 
   /** Optional deployment name used by deployment-based providers. */
   deployment_name?: string;
-
-  /** Optional model name to use for language model requests. */
-  model_name?: string;
 
   /** Language model provider that handles requests. */
   provider: LLMProvider;
@@ -89,11 +90,27 @@ export interface LLMConfig {
   presence_penalty?: number;
 }
 
+/** Locator for a concrete webpage control associated with a parsed field. */
+export interface InputFieldTarget {
+  /** CSS selector built exclusively from attributes present in the analyzed HTML. */
+  selector: string;
+
+  /** Portion represented by this control when one semantic field spans multiple controls. */
+  part?: string;
+
+  /** Human-readable option text for radio and checkbox controls. */
+  option_label?: string;
+
+  /** Serialized option value when it is explicitly present in the HTML. */
+  option_value?: string;
+}
+
 /** Description of a fillable field identified in webpage HTML. */
 export interface InputField {
   type: string;
   required: boolean;
   description?: string;
+  targets: InputFieldTarget[];
 }
 
 /** Value extracted from a document for a fillable webpage field. */

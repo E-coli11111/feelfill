@@ -18,6 +18,14 @@ import type {
 const AUTH_METHOD_ORDER = ['api-key', 'oauth'] as const satisfies readonly LLMAuthMethod[];
 const storage = getStorage();
 
+function getModelsForSelection(
+  availableModels: AuthenticatedLLMModels,
+  provider: LLMProvider,
+  authMethod: LLMAuthMethod,
+): LLMModel[] {
+  return availableModels[provider]?.[authMethod] ?? [];
+}
+
 function getFirstSelection(
   availableModels: AuthenticatedLLMModels,
   preferred?: ModelSelection | null,
@@ -49,26 +57,18 @@ function getFirstSelection(
 
       const preferredModel = preferred?.provider === provider
         && preferred.auth_method === authMethod
-        ? models.find((model) => model.id === preferred.model_name)
+        ? models.find((model) => model.id === preferred.model.id)
         : undefined;
 
       return {
         provider,
         auth_method: authMethod,
-        model_name: preferredModel?.id ?? models[0]!.id,
+        model: preferredModel ?? models[0]!,
       };
     }
   }
 
   return null;
-}
-
-function getModelsForSelection(
-  availableModels: AuthenticatedLLMModels,
-  provider: LLMProvider,
-  authMethod: LLMAuthMethod,
-): LLMModel[] {
-  return availableModels[provider]?.[authMethod] ?? [];
 }
 
 /** Loads authenticated models and persists the user's selected model. */
@@ -80,6 +80,7 @@ export function useModelSettings(): UseModelSettingsResult {
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
+    console.log('Reloading model settings...', selection, availableModels);
     setStatus('loading');
     setError(null);
 
@@ -88,11 +89,12 @@ export function useModelSettings(): UseModelSettingsResult {
         listModels(),
         storage.getLLMConfig(),
       ]);
-      const preferred = config?.model_name
+      console.log('Loaded models and config:', models, config);
+      const preferred = config?.model
         ? {
             provider: config.provider,
             auth_method: config.auth_method,
-            model_name: config.model_name,
+            model: config.model,
           }
         : null;
 
@@ -139,7 +141,7 @@ export function useModelSettings(): UseModelSettingsResult {
       return {
         provider: current.provider,
         auth_method: authMethod,
-        model_name: models[0]!.id,
+        model: models[0]!,
       };
     });
     setStatus('ready');
@@ -147,12 +149,22 @@ export function useModelSettings(): UseModelSettingsResult {
   }, [availableModels]);
 
   const selectModel = useCallback((modelName: string) => {
-    setSelection((current) => current
-      ? { ...current, model_name: modelName }
-      : null);
+    setSelection((current) => {
+      if (!current) {
+        return null;
+      }
+
+      const model = getModelsForSelection(
+        availableModels,
+        current.provider,
+        current.auth_method,
+      ).find((candidate) => candidate.id === modelName);
+
+      return model ? { ...current, model } : current;
+    });
     setStatus('ready');
     setError(null);
-  }, []);
+  }, [availableModels]);
 
   const save = useCallback(async () => {
     if (!selection) {

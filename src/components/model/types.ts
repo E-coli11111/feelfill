@@ -3,13 +3,14 @@ import type {
   LLMAuthMethod,
   LLMConfig,
   LLMProvider,
+  LLMModel,
 } from '@/src/services/llm/types';
 
 /** Provider, authentication method, and model selected in settings. */
 export interface ModelSelection {
   provider: LLMProvider;
   auth_method: LLMAuthMethod;
-  model_name: string;
+  model: LLMModel;
 }
 
 /** Lifecycle states exposed by the model settings hook. */

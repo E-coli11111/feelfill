@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 
 import ModelPanel from '@/src/components/model';
+import { SUPPORTED_MODELS } from '@/src/services/llm/registry';
 import { getStorage } from '@/src/services/llm/storage';
 
 describe('ModelPanel', () => {
@@ -26,12 +27,21 @@ describe('ModelPanel', () => {
 
   it('loads the stored selection and saves a different authenticated model', async () => {
     const storage = getStorage();
+    const storedModel = SUPPORTED_MODELS.openai.find(
+      (model) => model.id === 'gpt-5.6-terra',
+    );
+    const selectedModel = SUPPORTED_MODELS.openai.find(
+      (model) => model.id === 'gpt-5.6-luna',
+    );
+    if (!storedModel || !selectedModel) {
+      throw new Error('Expected the test models to be registered.');
+    }
     await storage.set('llmAuth:openai%3Aapi-key', 'test-api-key');
     await fakeBrowser.storage.local.set({
       llmConfig: {
         auth_method: 'api-key',
         provider: 'openai',
-        model_name: 'gpt-5.6-terra',
+        model: storedModel,
         temperature: 0.2,
       },
     });
@@ -52,7 +62,7 @@ describe('ModelPanel', () => {
       llmConfig: {
         auth_method: 'api-key',
         provider: 'openai',
-        model_name: 'gpt-5.6-luna',
+        model: selectedModel,
         temperature: 0.2,
       },
     });
