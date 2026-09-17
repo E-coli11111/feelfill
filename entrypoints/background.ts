@@ -2,6 +2,14 @@ import type { BackgroundRequest, BackgroundResponse } from '@/src/types';
 import { parseHTMLField, parseDocumentField } from '@/src/services/llm';
 
 export default defineBackground(() => {
+  if (!import.meta.env.FIREFOX) {
+    void browser.sidePanel
+      .setPanelBehavior({ openPanelOnActionClick: true })
+      .catch((error) => {
+        console.error('Failed to configure side panel behavior:', error);
+      });
+  }
+
   browser.runtime.onInstalled.addListener(({ reason }) => {
     if (reason === 'install') {
       void browser.storage.local.set({ enabled: true });
@@ -24,6 +32,7 @@ export default defineBackground(() => {
         }
       case 'FILL':
         try {
+          console.log('Received FILL request with field:', message.field, 'and files:', message.files);
           const result =await parseDocumentField(message.field, message.files);
           return { type: 'FILL', success: true, data: result };
         } catch (error) {

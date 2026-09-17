@@ -1,3 +1,5 @@
+import type { Base64File } from '@/src/types';
+
 /**
  * Reads a browser File as an unprefixed Base64 payload.
  *
@@ -5,7 +7,9 @@
  * @returns The Base64 payload without the data URL prefix.
  * @throws If the file cannot be read as a valid data URL.
  */
-export async function fileAsBase64(file: File): Promise<string> {
+export async function fileAsBase64(file: File): Promise<Base64File> {
+  const type = file.type
+  const name = file.name
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -22,7 +26,11 @@ export async function fileAsBase64(file: File): Promise<string> {
         return;
       }
 
-      resolve(reader.result.slice(separatorIndex + 1));
+      resolve({
+        content: reader.result.slice(separatorIndex + 1),
+        type,
+        name
+      });
     };
 
     reader.onerror = () => {

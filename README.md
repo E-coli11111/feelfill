@@ -11,11 +11,11 @@ npm run dev
 
 WXT 会启动带有扩展的浏览器。也可以在 `chrome://extensions` 开启“开发者模式”，选择“加载已解压的扩展程序”，加载 `.output/chrome-mv3`。
 
-## Popup 使用
+## 侧边栏使用
 
-点击扩展图标打开 FeelFill 弹窗，使用“开启 FeelFill”开关启用或关闭，状态自动保存。开启后可选择 PDF、Word 或 JPG/PNG 文件，弹窗会使用附件卡片显示所选文件名；关闭开关或关闭弹窗后需重新选择文件。当前仅实现文件选择 UI，尚未接入文件解析与网页填充。
+在 Chrome 中点击扩展图标会打开 FeelFill 侧边栏；Firefox 使用浏览器原生的扩展侧栏入口。使用“开启 FeelFill”开关启用或关闭，状态自动保存。开启后可选择 PDF、Word 或 JPG/PNG 文件，侧边栏会使用附件卡片显示所选文件名；确认文件后点击“解析并填充”，才会向当前网页发起字段识别、文档解析和自动填充。关闭开关或关闭侧边栏后需重新选择文件。
 
-点击底部“打开设置”进入扩展设置页。设置页左侧包含“鉴权”和“模型”：鉴权页可选择 OpenAI OAuth 浏览器登录或设备码登录，模型页只展示当前已登录方式支持的模型，并保存用于字段识别和文档提取的默认模型。Popup 和 Options UI 使用 shadcn/ui 组件与 Tailwind CSS 4；弹窗默认宽度为 360px，窄视口下自动收缩。
+点击底部“打开设置”进入扩展设置页。设置页左侧包含“鉴权”和“模型”：鉴权页可选择 OpenAI OAuth 浏览器登录或设备码登录，模型页只展示当前已登录方式支持的模型，并保存用于字段识别和文档提取的默认模型。Side Panel 和 Options UI 使用 shadcn/ui 组件与 Tailwind CSS 4；Side Panel 宽度跟随浏览器侧栏。
 
 统一的 `OpenAICodexOAuth` Adapter 支持 Codex 浏览器 Authorization Code + PKCE 流程。它打开独立登录标签页，捕获并校验 `http://localhost:1455/auth/callback` 回调后交换、校验并保存 Token。
 
@@ -31,7 +31,7 @@ WXT 会启动带有扩展的浏览器。也可以在 `chrome://extensions` 开�
 
 ## 目录
 
-- `entrypoints/popup`：点击工具栏图标后的 React 弹窗
+- `entrypoints/sidepanel`：浏览器侧边栏 React 入口
 - `entrypoints/options`：扩展设置页
 - `entrypoints/content`：通过 Shadow DOM 注入网页的 React UI
 - `entrypoints/background.ts`：Manifest V3 后台 Service Worker

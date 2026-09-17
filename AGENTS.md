@@ -28,12 +28,12 @@ feelfill/
 ├─ entrypoints/
 │  ├─ types.ts               # 扩展入口之间共享的消息类型
 │  ├─ background.ts          # MV3 后台 Service Worker
-│  ├─ popup/
-│  │  ├─ index.html          # 工具栏弹窗 HTML 入口
-│  │  ├─ main.tsx            # Popup React 挂载入口
-│  │  ├─ App.tsx             # Popup UI
-│  │  ├─ hooks.ts            # Popup 状态与浏览器 API 交互
-│  │  └─ style.css           # Popup Tailwind/CSS 入口
+│  ├─ sidepanel/
+│  │  ├─ index.html          # 浏览器侧边栏 HTML 入口
+│  │  ├─ main.tsx            # Side Panel React 挂载入口
+│  │  ├─ App.tsx             # Side Panel UI
+│  │  ├─ hooks.ts            # Side Panel 状态与浏览器 API 交互
+│  │  └─ style.css           # Side Panel Tailwind/CSS 入口
 │  ├─ options/
 │  │  ├─ index.html          # 设置页 HTML 入口
 │  │  ├─ main.tsx            # Options React 应用与逻辑
@@ -79,18 +79,19 @@ feelfill/
 - `LOCATE` 消息调用 `parseHTMLField`，并返回结构化的页面字段识别结果。
 - `FILL` 消息调用 `parseDocumentField`，并返回结构化的文档字段提取结果。
 - `SET` 分支尚未实现。
-- 当前没有处理 `PING` 消息；Popup 不再发送该消息。
+- 当前没有处理 `PING` 消息；Side Panel 不发送该消息。
 - Background 是 Manifest V3 Service Worker；不要依赖长期驻留的内存状态。
 
-### Popup
+### Side Panel
 
-`entrypoints/popup/`：
+`entrypoints/sidepanel/`：
 
 - 读取并切换 `browser.storage.local.enabled`。
-- 使用 shadcn/ui 默认浅色主题和卡片布局，默认宽度 360px，窄视口收缩；开启后显示文件选择框和已选附件卡片。
+- 使用 shadcn/ui 默认浅色主题和卡片布局，宽度跟随浏览器侧边栏；开启后显示文件选择框和已选附件卡片。
 - 开关读取与保存期间禁用操作，失败时显示提示；通过 `browser.runtime.openOptionsPage()` 打开设置。
-- 选择文件后显示文件名，仅保存在当前 Popup 内存中，关闭开关时清空；随后向 Content Script 发送 `FILL_PAGE`，由 Content Script 完成字段识别、文档解析和页面填充链路。
-- Popup 关闭后 React 内存状态会丢失；需要持久化的状态应放入扩展存储。
+- 选择文件后显示文件名，仅保存在当前 Side Panel 内存中，关闭开关时清空；用户点击“解析并填充”后才向 Content Script 发送 `FILL_PAGE`，由 Content Script 完成字段识别、文档解析和页面填充链路。
+- Chromium 点击扩展工具栏图标时打开 Side Panel；Firefox 使用原生 `sidebar_action` 入口。
+- Side Panel 关闭后 React 内存状态会丢失；需要持久化的状态应放入扩展存储。
 
 ### Options
 
@@ -120,7 +121,7 @@ feelfill/
 - `listModels()` 按 Provider 和认证方式返回 `SUPPORTED_MODELS` 中已启用的模型；只有存在有效凭据的认证方式会出现在结果中，未登录或凭据损坏的认证方式会被省略。
 - Provider 工厂支持 OpenAI、Anthropic、Google、OpenRouter、xAI 和 OpenAI-compatible custom endpoint；`provider` 只表示服务商，`auth_method` 独立表示 `api-key` 或 `oauth`。创建模型时通过两者的组合查找 Auth Adapter 并选择具体传输实现。
 - OpenAI 使用 API Key 时创建标准 OpenAI Provider，使用 OAuth 时创建基于 LangChain Responses API 的 Codex Provider，适配 `https://chatgpt.com/backend-api/codex/responses` 并从 OAuth JWT 提取 `chatgpt_account_id`。
-- OpenAI OAuth 通过统一的 `OpenAICodexOAuth` Adapter 实现 device-code 与浏览器 Authorization Code + PKCE 流程，两者复用 Token 交换、持久化、刷新和撤销逻辑；Adapter 自行定义完整凭据键。浏览器流程通过专用标签页捕获 `localhost:1455` 回调并校验 `state`，不在扩展内启动本地 HTTP 服务。Options 已通过统一的 OpenAI 登录面板提供浏览器和设备码两种入口，Popup 登录 UI 与消息协议尚未接入。
+- OpenAI OAuth 通过统一的 `OpenAICodexOAuth` Adapter 实现 device-code 与浏览器 Authorization Code + PKCE 流程，两者复用 Token 交换、持久化、刷新和撤销逻辑；Adapter 自行定义完整凭据键。浏览器流程通过专用标签页捕获 `localhost:1455` 回调并校验 `state`，不在扩展内启动本地 HTTP 服务。Options 已通过统一的 OpenAI 登录面板提供浏览器和设备码两种入口，Side Panel 登录 UI 与消息协议尚未接入。
 - 各认证 Adapter 使用自行定义的带 `llmAuth:` 前缀的完整 `browser.storage.local` 键保存序列化凭据，并通过 `BrowserStorage` 读取、写入和删除。
 - `ApiKeyAuth` 实现 API Key 的本地校验、按 Provider 隔离存取和清除，其完整存储键包含 `api-key` 命名空间，避免与 OAuth 凭据冲突。
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
@@ -135,14 +136,14 @@ feelfill/
 - `File[]` 是否能按预期通过扩展消息传输尚未验证；确定协议时优先采用明确、可序列化且有共享类型的 DTO。
 - 页面字段识别、文件字段提取和原生 DOM 控件填充已形成基础闭环；自定义组件、复杂富文本、Shadow DOM、iframe 和文件控件仍未覆盖。
 - Content React UI 与 `enabled` 动态开关尚未接入。
-- 测试基础设施已经建立；LLM Service 测试位于 `tests/service/llm/index.test.ts`，Popup 交互测试位于 `tests/entrypoints/popup/`，共享组件测试位于 `tests/components/`。
+- 测试基础设施已经建立；LLM Service 测试位于 `tests/services/llm/index.test.ts`，Side Panel 交互测试位于 `tests/entrypoints/sidepanel/`，共享组件测试位于 `tests/components/`。
 
 仓库可能包含用户未提交的修改。不要覆盖、回退或格式化与当前任务无关的改动。
 
 ## 样式约定
 
 - Tailwind CSS 通过 `wxt.config.ts` 中的 `@tailwindcss/vite` 插件启用。
-- Popup、Options 和 Content Script 是三个独立构建入口，因此当前各自保留一个 `style.css`。
+- Side Panel、Options 和 Content Script 是三个独立构建入口，因此当前各自保留一个 `style.css`。
 - 每个入口样式文件通过 `@import "tailwindcss";` 引入 Tailwind。
 - 新 UI 优先使用 Tailwind utility class；仅在 utility class 不合适时增加局部 CSS。
 - Content UI 接入 Shadow DOM 后，其 `rem` 单位仍可能受到宿主网页根字体大小影响；尺寸必须稳定时优先使用明确的像素任意值，如 `w-[48px]`。
@@ -193,9 +194,9 @@ npm run zip:firefox
 - Prompt 测试只断言安全边界、字段定义、关键约束和输入内容等稳定条件，不对整段 Prompt 使用大规模快照测试。
 - LLM provider 测试应 mock LangChain 模型构造器，验证 provider 选择、参数传递和未知 provider 错误；普通测试不得请求真实 LLM API，也不得读取 `.env` 或 `.env.sh`。
 - React 组件应从用户可观察行为进行测试，例如可访问角色、状态、点击、文件选择和回调；不要逐项断言 Tailwind class。
-- Popup 和 Options 测试应覆盖存储读取、状态切换、保存及失败状态。
+- Side Panel 和 Options 测试应覆盖存储读取、状态切换、保存及失败状态。
 - Background 和 Content Script 的业务逻辑应尽量提取为可单独调用的具名函数，入口文件只负责注册监听器，以便测试消息分支和错误处理。
-- 消息集成测试应覆盖 Popup、Background 和 Content Script 使用的消息类型、负载及响应是否一致，并使用 fake browser 隔离存储与监听器状态。
+- 消息集成测试应覆盖 Side Panel、Background 和 Content Script 使用的消息类型、负载及响应是否一致，并使用 fake browser 隔离存储与监听器状态。
 - 测试 fixture 不得包含真实密钥、个人文件或敏感网页内容。
 
 ### 测试执行规则
@@ -226,8 +227,8 @@ npm run zip:firefox
 - 修改跨浏览器入口、Manifest 或浏览器 API 时，同时运行 `npm run build:firefox`。
 - 当前已知基线错误也必须如实报告；不得通过 `any`、忽略规则或删除检查来制造通过结果。
 - 修改 Content Script UI 后，应在普通 HTTP/HTTPS 页面上人工检查：挂载、开关、Shadow DOM 样式隔离及控制台错误。
-- 修改 Popup 或 Options 后，应分别在扩展环境中打开并检查，不能只按普通网页测试。
-- 修改存储字段时，应同步检查 Background、Popup、Options 和 Content Script 的所有读写位置。
+- 修改 Side Panel 或 Options 后，应分别在扩展环境中打开并检查，不能只按普通网页测试。
+- 修改存储字段时，应同步检查 Background、Side Panel、Options 和 Content Script 的所有读写位置。
 - 修改 `permissions`、`host_permissions` 或匹配范围时，应说明原因，并遵循最小权限原则。
 - 不要手工修改 `.wxt/`、`.output/` 或 `node_modules/`。
 - 不要读取、输出、提交或覆盖 `.env`、`.env.sh` 中的秘密信息。

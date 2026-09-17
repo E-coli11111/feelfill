@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { browser } from 'wxt/browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import App from '@/entrypoints/popup/App';
+import App from '@/entrypoints/sidepanel/App';
 
-describe('Popup', () => {
+describe('Side panel', () => {
   beforeEach(() => { fakeBrowser.reset(); });
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
@@ -39,7 +39,7 @@ describe('Popup', () => {
     await waitFor(() => expect(screen.queryByText('已选择：资料.pdf')).not.toBeInTheDocument());
   });
 
-  it('sends the selected file to the active tab for filling', async () => {
+  it('waits for confirmation before sending the selected file for filling', async () => {
     const user = userEvent.setup();
     const queryTabs = vi.spyOn(browser.tabs, 'query').mockImplementation(async () => [{ id: 7 }]);
     const sendToContent = vi.spyOn(browser.tabs, 'sendMessage').mockImplementation(async () => ({
@@ -51,11 +51,17 @@ describe('Popup', () => {
     const file = new File(['fixture'], '资料.pdf', { type: 'application/pdf' });
     await user.upload(await screen.findByLabelText('点击上传文件'), file);
 
+    expect(sendToContent).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: '解析并填充' }));
     await waitFor(() => expect(sendToContent).toHaveBeenCalledOnce());
     expect(queryTabs).toHaveBeenCalledWith({ active: true, currentWindow: true });
     expect(sendToContent).toHaveBeenCalledWith(7, {
       type: 'FILL_PAGE',
-      files: [file],
+      files: [{
+        content: 'Zml4dHVyZQ==',
+        name: '资料.pdf',
+        type: 'application/pdf',
+      }],
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -72,6 +78,7 @@ describe('Popup', () => {
     render(<App />);
     const file = new File(['fixture'], '资料.pdf', { type: 'application/pdf' });
     await user.upload(await screen.findByLabelText('点击上传文件'), file);
+    await user.click(screen.getByRole('button', { name: '解析并填充' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('没有成功填充任何字段');
   });

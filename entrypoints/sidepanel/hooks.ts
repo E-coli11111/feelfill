@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { browser } from 'wxt/browser';
 
 import type {
+  Base64File,
   ContentRequest,
   ContentResponse,
 } from '@/src/types';
+
+import { fileAsBase64 } from '@/src/utils/encode-utils';
 
 function isContentResponse(value: unknown): value is ContentResponse {
   if (typeof value !== 'object' || value === null) return false;
@@ -16,17 +19,24 @@ function isContentResponse(value: unknown): value is ContentResponse {
     && (response.data === undefined || typeof response.data === 'string');
 }
 
-function getPopupStatus(loading: boolean, saving: boolean, enabled: boolean) {
+function getSidepanelStatus(
+  loading: boolean,
+  saving: boolean,
+  processing: boolean,
+  enabled: boolean,
+) {
   if (loading) return '正在读取状态…';
   if (saving) return '正在保存…';
+  if (processing) return '正在解析文件并填充页面…';
   return enabled ? '已开启，选择需要使用的文件' : '已关闭，开启后可选择文件';
 }
 
-/** Manages the popup state and browser API interactions. */
-export function usePopup() {
+/** Manages the side panel state and browser API interactions. */
+export function useSidepanel() {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [openingSettings, setOpeningSettings] = useState(false);
   const [error, setError] = useState('');
   const [files, setFiles] = useState<File[]>();
@@ -40,7 +50,7 @@ export function usePopup() {
         if (active) setEnabled(storedEnabled !== false);
       })
       .catch(() => {
-        if (active) setError('无法读取开关状态，请重新打开弹窗。');
+        if (active) setError('无法读取开关状态，请重新打开侧边栏。');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -79,14 +89,19 @@ export function usePopup() {
     }
   }, []);
 
-  const selectFile = useCallback(async (files: File[]) => {
-    console.log('Selected files Test');
-    if (!files.length) return;
+  const selectFile = useCallback((selectedFiles: File[]) => {
+    if (!selectedFiles.length) return;
 
-    setFiles(files);
+    setFiles(selectedFiles);
     setError('');
+  }, []);
+
+  const processFiles = useCallback(async () => {
+    if (!files?.length) return;
 
     let contentResponse: unknown;
+    setProcessing(true);
+    setError('');
 
     try {
       const [activeTab] = await browser.tabs.query({
@@ -98,9 +113,11 @@ export function usePopup() {
         throw new Error('No active tab');
       }
 
+      const base64Files: Base64File[] = await Promise.all(files.map(fileAsBase64));
+
       const message = {
         type: 'FILL_PAGE',
-        files,
+        files: base64Files,
       } satisfies ContentRequest;
 
       contentResponse = await browser.tabs.sendMessage(activeTab.id, message);
@@ -110,12 +127,13 @@ export function usePopup() {
       } else if (!contentResponse.success) {
         setError(contentResponse.error ?? '页面填充失败。');
       }
-    } catch(error) {
+    } catch (error) {
       setError('无法连接当前页面，请刷新页面后重试。');
       console.error('Error sending message to content script:', error);
-      return;
+    } finally {
+      setProcessing(false);
     }
-  }, []);
+  }, [files]);
 
   return {
     enabled,
@@ -123,9 +141,11 @@ export function usePopup() {
     files,
     loading,
     openingSettings,
+    processing,
     saving,
-    status: getPopupStatus(loading, saving, enabled),
+    status: getSidepanelStatus(loading, saving, processing, enabled),
     openSettings,
+    processFiles,
     selectFile,
     toggleEnabled,
   };

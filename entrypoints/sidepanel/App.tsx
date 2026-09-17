@@ -1,4 +1,10 @@
-import { CircleAlert, FileText, Settings2, Sparkles } from 'lucide-react';
+import {
+  CircleAlert,
+  FileText,
+  LoaderCircle,
+  Settings2,
+  Sparkles,
+} from 'lucide-react';
 
 import Uploader from '@/src/components/uploader';
 import { Button } from '@/src/components/ui/button';
@@ -12,7 +18,7 @@ import {
 } from '@/src/components/ui/card';
 import { Switch } from '@/src/components/ui/switch';
 
-import { usePopup } from './hooks';
+import { useSidepanel } from './hooks';
 
 export default function App() {
   const {
@@ -21,12 +27,14 @@ export default function App() {
     files,
     loading,
     openingSettings,
+    processing,
     saving,
     status,
     openSettings,
+    processFiles,
     selectFile,
     toggleEnabled,
-  } = usePopup();
+  } = useSidepanel();
 
   return (
     <main className="w-full p-4">
@@ -49,7 +57,7 @@ export default function App() {
               <span className="text-sm font-medium leading-none">开启 FeelFill</span>
               <Switch
                 checked={enabled}
-                disabled={loading || saving}
+                disabled={loading || saving || processing}
                 aria-label="开启 FeelFill"
                 onCheckedChange={(next) => void toggleEnabled(next)}
               />
@@ -62,17 +70,31 @@ export default function App() {
               <Uploader
                 multiple
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                disabled={processing}
                 text={files && files.length > 0 ? '重新选择文件' : '点击上传文件'}
                 onChange={selectFile}
               />
               <p className="text-center text-xs text-muted-foreground">支持 PDF、Word、JPG、PNG</p>
               {files && files.length > 0 && (
-                <div role="status" className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm">
-                  <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                  {files.map((file) => (
-                    <span key={file.name} className="min-w-0 break-all">已选择：{file.name}</span>
-                  ))}
-                </div>
+                <>
+                  <div role="status" className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm">
+                    <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 space-y-1">
+                      {files.map((file) => (
+                        <p key={file.name} className="break-all">已选择：{file.name}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={processing}
+                    className="w-full"
+                    onClick={() => void processFiles()}
+                  >
+                    {processing && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
+                    {processing ? '正在解析并填充…' : '解析并填充'}
+                  </Button>
+                </>
               )}
             </section>
           )}
@@ -101,4 +123,3 @@ export default function App() {
     </main>
   );
 }
-
