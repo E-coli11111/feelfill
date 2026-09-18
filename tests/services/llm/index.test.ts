@@ -29,7 +29,7 @@ function createTestModel(
       image: false,
       file: false,
       stream,
-      structured_output: false,
+      structured_output: true,
     },
     enabled: true,
   };
@@ -42,12 +42,24 @@ type MockModelResponse = {
 type MockModel = {
   invoke: (messages: BaseMessage[]) => Promise<MockModelResponse>;
   stream: (messages: BaseMessage[]) => Promise<AsyncIterable<AIMessageChunk>>;
+  withStructuredOutput: (schema: unknown) => {
+    invoke: (messages: BaseMessage[]) => Promise<unknown>;
+    stream: (messages: BaseMessage[]) => Promise<AsyncIterable<Record<string, unknown>>>;
+  };
 };
 
 const mocks = vi.hoisted(() => ({
   createAuthenticatedLLMProvider: vi.fn<(config: LLMConfig) => Promise<MockModel>>(),
   invoke: vi.fn<(messages: BaseMessage[]) => Promise<MockModelResponse>>(),
   stream: vi.fn<(messages: BaseMessage[]) => Promise<AsyncIterable<AIMessageChunk>>>(),
+  structuredInvoke: vi.fn<(messages: BaseMessage[]) => Promise<unknown>>(),
+  structuredStream: vi.fn<
+    (messages: BaseMessage[]) => Promise<AsyncIterable<Record<string, unknown>>>
+  >(),
+  withStructuredOutput: vi.fn<(schema: unknown) => {
+    invoke: (messages: BaseMessage[]) => Promise<unknown>;
+    stream: (messages: BaseMessage[]) => Promise<AsyncIterable<Record<string, unknown>>>;
+  }>(),
 }));
 
 vi.mock('@/src/services/llm/provider', () => ({
@@ -60,9 +72,20 @@ describe('LLM service', () => {
   beforeEach(() => {
     fakeBrowser.reset();
     vi.clearAllMocks();
+    mocks.structuredStream.mockImplementation(async (messages) => {
+      const response = await mocks.structuredInvoke(messages);
+      return (async function* () {
+        yield response as Record<string, unknown>;
+      })();
+    });
+    mocks.withStructuredOutput.mockReturnValue({
+      invoke: mocks.structuredInvoke,
+      stream: mocks.structuredStream,
+    });
     mocks.createAuthenticatedLLMProvider.mockResolvedValue({
       invoke: mocks.invoke,
       stream: mocks.stream,
+      withStructuredOutput: mocks.withStructuredOutput,
     });
   });
 
@@ -75,11 +98,17 @@ describe('LLM service', () => {
     };
     const html = '<label for="name">姓名</label><input id="name" required>';
     const response = {
-      text: '{"field":{"姓名":{"type":"text","required":true,"targets":[{"selector":"input[id=\\"name\\"]"}]}}}',
+      field: {
+        姓名: {
+          type: 'text',
+          required: true,
+          targets: [{ selector: 'input[id="name"]' }],
+        },
+      },
     };
 
     await fakeBrowser.storage.local.set({ llmConfig: config });
-    mocks.invoke.mockResolvedValue(response);
+    mocks.structuredInvoke.mockResolvedValue(response);
 
     const result = await parseHTMLField(html);
 
@@ -93,17 +122,19 @@ describe('LLM service', () => {
       },
     });
     expect(mocks.createAuthenticatedLLMProvider).toHaveBeenCalledWith(config);
-    expect(mocks.invoke).toHaveBeenCalledOnce();
+    expect(mocks.withStructuredOutput).toHaveBeenCalledOnce();
+    expect(mocks.structuredInvoke).toHaveBeenCalledOnce();
+    expect(mocks.invoke).not.toHaveBeenCalled();
     expect(mocks.stream).not.toHaveBeenCalled();
 
-    const messages = mocks.invoke.mock.calls[0]?.[0];
+    const messages = mocks.structuredInvoke.mock.calls[0]?.[0];
     expect(messages).toHaveLength(1);
     expect(messages?.[0]).toBeInstanceOf(SystemMessage);
     expect(messages?.[0]?.text).toContain(html);
     expect(messages?.[0]?.text).toContain('<feelfill_html_data>');
   });
 
-  it('prefers streaming and combines HTML parsing response chunks', async () => {
+  it('uses structured output instead of text streaming for HTML parsing', async () => {
     const config: LLMConfig = {
       auth_method: 'api-key',
       provider: 'openai',
@@ -111,15 +142,14 @@ describe('LLM service', () => {
     };
 
     await fakeBrowser.storage.local.set({ llmConfig: config });
-    mocks.stream.mockResolvedValue((async function* () {
-      yield new AIMessageChunk('{"field":');
-      yield new AIMessageChunk('{}}');
-    })());
+    mocks.structuredInvoke.mockResolvedValue({ field: {} });
 
     const result = await parseHTMLField('<input name="name">');
 
     expect(result).toEqual({ field: {} });
-    expect(mocks.stream).toHaveBeenCalledOnce();
+    expect(mocks.withStructuredOutput).toHaveBeenCalledOnce();
+    expect(mocks.structuredInvoke).toHaveBeenCalledOnce();
+    expect(mocks.stream).not.toHaveBeenCalled();
     expect(mocks.invoke).not.toHaveBeenCalled();
   });
 
@@ -139,14 +169,23 @@ describe('LLM service', () => {
         },
       },
     };
-    const file = new File(['hello'], 'profile.txt', { type: 'text/plain' });
-    const response = { text: '{"field":{"姓名":{"value":"张三","found":true,"evidence":"姓名：张三"}}}' };
+    const file = {
+      name: 'profile.txt',
+      type: 'text/plain',
+      content: 'aGVsbG8=',
+    };
+    const response = {
+      field: {
+        姓名: {
+          value: '张三',
+          found: true,
+          evidence: '姓名：张三',
+        },
+      },
+    };
 
     await fakeBrowser.storage.local.set({ llmConfig: config });
-    mocks.stream.mockResolvedValue((async function* () {
-      yield new AIMessageChunk(response.text.slice(0, 20));
-      yield new AIMessageChunk(response.text.slice(20));
-    })());
+    mocks.structuredInvoke.mockResolvedValue(response);
 
     const result = await parseDocumentField(fields, [file]);
 
@@ -161,7 +200,7 @@ describe('LLM service', () => {
     });
     expect(mocks.createAuthenticatedLLMProvider).toHaveBeenCalledWith(config);
 
-    const messages = mocks.stream.mock.calls[0]?.[0];
+    const messages = mocks.structuredInvoke.mock.calls[0]?.[0];
     expect(messages).toHaveLength(2);
     expect(messages?.[0]).toBeInstanceOf(SystemMessage);
     expect(messages?.[0]?.text).toContain('"姓名"');
@@ -185,6 +224,29 @@ describe('LLM service', () => {
       },
     ]);
     expect(mocks.invoke).not.toHaveBeenCalled();
+    expect(mocks.stream).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid structured model response at the service boundary', async () => {
+    const config: LLMConfig = {
+      auth_method: 'api-key',
+      provider: 'openai',
+      model: createTestModel('test-model', 'openai'),
+    };
+
+    await fakeBrowser.storage.local.set({ llmConfig: config });
+    mocks.structuredInvoke.mockResolvedValue({
+      field: {
+        name: {
+          type: 'text',
+          required: 'yes',
+          targets: [],
+        },
+      },
+    });
+
+    await expect(parseHTMLField('<input name="name">')).rejects.toThrow();
+    expect(mocks.withStructuredOutput).toHaveBeenCalledOnce();
   });
 
   it('rejects document parsing for providers that are not yet supported', async () => {

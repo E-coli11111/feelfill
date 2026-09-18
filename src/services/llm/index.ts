@@ -15,6 +15,10 @@ import { buildParseDocumentPrompt, buildParseHtmlPrompt } from "./prompt";
 import { createAuthenticatedLLMProvider } from "./provider";
 import { getStorage } from './storage';
 import { invokeModel } from './models';
+import {
+  filledInputFieldResultSchema,
+  parsedInputFieldResultSchema,
+} from './schemas';
 
 const storage = getStorage();
 
@@ -40,10 +44,9 @@ export async function parseHTMLField(html: string): Promise<ParsedInputFieldResu
       llmProvider,
       [new SystemMessage(prompt)],
       llmConfig.model?.capabilities.stream === true,
+      parsedInputFieldResultSchema,
     );
-    const result: ParsedInputFieldResult = JSON.parse(response);
-
-    return result;
+    return parsedInputFieldResultSchema.parse(JSON.parse(response));
   }catch (error) {
     console.error('Error invoking LLM provider for parseHTMLField:', error);
     throw error;
@@ -86,20 +89,23 @@ export async function parseDocumentField(field: ParsedInputFieldResult, files: B
     attachments.push(attachment);
   }
 
-  // TODO: Structure output
-  const response = await invokeModel(llmProvider, [
-    new SystemMessage(prompt),
-    new HumanMessage({
-      contentBlocks: [
-        {
-          type: "text",
-          text: "以下是用户提供的文档，请根据提示提取指定字段：",
-        },
-        ...attachments
-      ]
-    }),
-  ], llmConfig.model?.capabilities.stream === true);
+  const response = await invokeModel(
+    llmProvider,
+    [
+      new SystemMessage(prompt),
+      new HumanMessage({
+        contentBlocks: [
+          {
+            type: "text",
+            text: "以下是用户提供的文档，请根据提示提取指定字段：",
+          },
+          ...attachments
+        ]
+      }),
+    ],
+    llmConfig.model?.capabilities.stream === true,
+    filledInputFieldResultSchema,
+  );
 
-  const result: FilledInputFieldResult = JSON.parse(response);
-  return result;
+  return filledInputFieldResultSchema.parse(JSON.parse(response));
 }

@@ -1,10 +1,9 @@
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import {
-  HumanMessage,
-  SystemMessage,
   type BaseMessage,
   type BaseMessageChunk,
 } from '@langchain/core/messages';
+import type { ZodType } from 'zod';
 
 import { getProviderAuthMethod, SUPPORTED_MODELS } from './registry';
 import type {
@@ -61,15 +60,51 @@ export async function listModels(): Promise<AuthenticatedLLMModels> {
   return availableModels;
 }
 
+/**
+ * Invokes a chat model and optionally requests a schema-validated response.
+ *
+ * Structured output uses LangChain's provider-specific implementation. When
+ * streaming is enabled, each parsed chunk is treated as a cumulative snapshot
+ * and the final snapshot is validated after the stream completes.
+ *
+ * @param model The configured chat model.
+ * @param messages Messages sent to the model.
+ * @param supportsStreaming Whether plain-text responses should be streamed.
+ * @param outputSchema Optional schema describing the structured response.
+ * @returns JSON text for structured output, otherwise the model response text.
+ */
 export async function invokeModel(
   model: BaseChatModel,
   messages: BaseMessage[],
   supportsStreaming: boolean,
+  outputSchema?: ZodType<Record<string, unknown>>,
 ): Promise<string> {
+  if (outputSchema) {
+    const structuredModel = model.withStructuredOutput(outputSchema, {
+      method: "jsonMode",
+    });
+    let structuredResponse: Record<string, unknown> | undefined;
+    if (!supportsStreaming) {
+      structuredResponse = await structuredModel.invoke(messages);
+    } else {
+      const stream = await structuredModel.stream(messages);
+
+      for await (const chunk of stream) {
+        structuredResponse = chunk;
+      }
+    }
+
+    if (!structuredResponse) {
+      throw new Error('LLM returned an empty structured output stream');
+    }
+
+    return JSON.stringify(outputSchema.parse(structuredResponse));
+  }
+
   let response: BaseMessageChunk | undefined;
   if (!supportsStreaming) {
     response = await model.invoke(messages);
-  }else {
+  } else {
     const stream = await model.stream(messages);
 
     for await (const chunk of stream) {
@@ -80,6 +115,6 @@ export async function invokeModel(
       throw new Error('LLM returned an empty stream');
     }
   }
-  
+
   return response.text;
 }

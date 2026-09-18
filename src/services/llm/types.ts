@@ -121,12 +121,12 @@ export interface FilledInputField {
 }
 
 /** Collection of fillable fields identified in webpage HTML. */
-export interface ParsedInputFieldResult {
+export interface ParsedInputFieldResult extends Record<string, unknown> {
   field: Record<string, InputField>;
 }
 
 /** Collection of document values extracted for fillable webpage fields. */
-export interface FilledInputFieldResult {
+export interface FilledInputFieldResult extends Record<string, unknown> {
   field: Record<string, FilledInputField>;
 }
 

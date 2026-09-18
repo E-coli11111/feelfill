@@ -63,9 +63,10 @@ export async function handleMessage(
         error: '文档字段解析返回了空数据',
       };
     }
-
+    console.log('Locate response data:', locateResponse.data);
+    console.log('Fill response data:', fillResponse.data);
     const result = fillResultToWebsite(locateResponse.data, fillResponse.data);
-
+    console.log('Fill result applied to website:', result);
     return {
       type: 'FILL_PAGE',
       success: result.filled.length > 0,

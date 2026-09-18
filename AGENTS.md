@@ -127,7 +127,7 @@ feelfill/
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
 - LLM 调用在所选模型声明支持 `stream` 时优先使用流式接口并合并消息块，否则使用普通 `invoke()`。
 - Prompt 已包含把网页和文档内容视为不可信数据的约束。
-- LLM Service 在服务边界解析模型 JSON，并分别返回 `ParsedInputFieldResult` 和 `FilledInputFieldResult` 结构化对象。
+- `invokeModel()` 统一返回 JSON 字符串；传入 Zod Schema 时通过 LangChain 结构化输出能力获取结果，流式调用保留最后一个累计对象快照，完成后使用 Schema 校验并序列化。LLM Service 在服务边界解析并再次校验 JSON，分别返回 `ParsedInputFieldResult` 和 `FilledInputFieldResult` 对象。
 
 ## 已知缺口与基线状态
 
