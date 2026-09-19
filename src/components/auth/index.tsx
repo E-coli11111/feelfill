@@ -114,7 +114,7 @@ export function AuthPanel() {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-5 lg:grid-cols-2">
       {panels.map(({ id, kind, provider }) => {
         const status = statuses[id] ?? 'loading';
 
@@ -127,7 +127,8 @@ export function AuthPanel() {
               <CardDescription>{AUTH_KIND_LABELS[kind]}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p role="status" className="text-sm">
+              <p role="status" className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${status === 'authenticated' ? 'bg-accent text-success' : status === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
                 {STATUS_LABELS[status]}
               </p>
             </CardContent>

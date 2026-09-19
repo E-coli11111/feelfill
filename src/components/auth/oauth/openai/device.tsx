@@ -48,7 +48,7 @@ export function OpenaiDeviceCodePanel({
         {step === 'wait' && (
           <div>
             <p>请打开 OpenAI 授权页面并输入以下设备码：</p>
-            <p aria-label="设备码" className="my-4 font-mono text-xl">{code}</p>
+            <p aria-label="设备码" className="my-4 break-all rounded-lg border border-primary/20 bg-accent/50 p-5 text-center font-mono text-2xl font-semibold tracking-widest text-primary">{code}</p>
             <a href={authorizeUrl} target="_blank" rel="noreferrer">
               打开 OpenAI 授权页面
             </a>
@@ -57,11 +57,11 @@ export function OpenaiDeviceCodePanel({
         )}
 
         {step === 'success' && (
-          <p role="status">OpenAI 授权成功。</p>
+          <p role="status" className="rounded-lg bg-accent p-4 text-success">OpenAI 授权成功。</p>
         )}
 
         {step === 'error' && (
-          <p role="alert">授权失败，请重试。</p>
+          <p role="alert" className="rounded-lg bg-destructive/10 p-4 text-destructive">授权失败，请重试。</p>
         )}
       </CardContent>
 

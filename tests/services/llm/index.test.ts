@@ -187,7 +187,8 @@ describe('LLM service', () => {
     await fakeBrowser.storage.local.set({ llmConfig: config });
     mocks.structuredInvoke.mockResolvedValue(response);
 
-    const result = await parseDocumentField(fields, [file]);
+    const userInstruction = '优先使用护照上的英文姓名。';
+    const result = await parseDocumentField(fields, [file], userInstruction);
 
     expect(result).toEqual({
       field: {
@@ -204,6 +205,7 @@ describe('LLM service', () => {
     expect(messages).toHaveLength(2);
     expect(messages?.[0]).toBeInstanceOf(SystemMessage);
     expect(messages?.[0]?.text).toContain('"姓名"');
+    expect(messages?.[0]?.text).toContain(userInstruction);
 
     const humanMessage = messages?.[1];
     expect(humanMessage).toBeInstanceOf(HumanMessage);

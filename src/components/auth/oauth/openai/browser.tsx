@@ -57,10 +57,10 @@ export function OpenaiBrowserOAuthPanel({
           </div>
         )}
 
-        {step === 'success' && <p role="status">OpenAI 授权成功。</p>}
+        {step === 'success' && <p role="status" className="rounded-lg bg-accent p-4 text-success">OpenAI 授权成功。</p>}
 
         {step === 'error' && (
-          <p role="alert">浏览器授权失败或已取消，请重试。</p>
+          <p role="alert" className="rounded-lg bg-destructive/10 p-4 text-destructive">浏览器授权失败或已取消，请重试。</p>
         )}
       </CardContent>
 

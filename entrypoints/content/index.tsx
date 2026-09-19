@@ -46,6 +46,7 @@ export async function handleMessage(
       type: 'FILL',
       field: locateResponse.data,
       files: message.files,
+      userInstruction: message.userInstruction,
     } satisfies BackgroundRequest);
 
     if (fillResponse.type !== 'FILL' || !fillResponse.success) {

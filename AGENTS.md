@@ -87,8 +87,9 @@ feelfill/
 `entrypoints/sidepanel/`：
 
 - 读取并切换 `browser.storage.local.enabled`。
-- 使用 shadcn/ui 默认浅色主题和卡片布局，宽度跟随浏览器侧边栏；开启后显示文件选择框和已选附件卡片。
+- 使用 shadcn/ui 暖白与松绿色主题和卡片布局，宽度跟随浏览器侧边栏；开启后显示文件选择框和已选附件卡片，关闭时显示使用引导。
 - 开关读取与保存期间禁用操作，失败时显示提示；通过 `browser.runtime.openOptionsPage()` 打开设置。
+- 开启后允许用户输入本次文档解析的自定义要求；输入区默认收起，通过“自定义要求”按钮展开，收起时保留内容并显示“已添加”标记，仍随解析请求发送。自定义要求仅保存在当前 Side Panel 内存中，关闭开关时清空并重置折叠状态，并通过 `FILL_PAGE` 和 `FILL` 消息传递给文档解析服务。
 - 选择文件后显示文件名，仅保存在当前 Side Panel 内存中，关闭开关时清空；用户点击“解析并填充”后才向 Content Script 发送 `FILL_PAGE`，由 Content Script 完成字段识别、文档解析和页面填充链路。
 - Chromium 点击扩展工具栏图标时打开 Side Panel；Firefox 使用原生 `sidebar_action` 入口。
 - Side Panel 关闭后 React 内存状态会丢失；需要持久化的状态应放入扩展存储。
@@ -125,6 +126,7 @@ feelfill/
 - 各认证 Adapter 使用自行定义的带 `llmAuth:` 前缀的完整 `browser.storage.local` 键保存序列化凭据，并通过 `BrowserStorage` 读取、写入和删除。
 - `ApiKeyAuth` 实现 API Key 的本地校验、按 Provider 隔离存取和清除，其完整存储键包含 `api-key` 命名空间，避免与 OAuth 凭据冲突。
 - HTML 字段识别可使用已配置的 Provider；文档解析当前仅允许 OpenAI。
+- 文档字段解析服务接受可选的用户额外指令；提示词会将其作为受核心提取规则、安全边界和输出结构约束的补充要求。
 - LLM 调用在所选模型声明支持 `stream` 时优先使用流式接口并合并消息块，否则使用普通 `invoke()`。
 - Prompt 已包含把网页和文档内容视为不可信数据的约束。
 - `invokeModel()` 统一返回 JSON 字符串；传入 Zod Schema 时通过 LangChain 结构化输出能力获取结果，流式调用保留最后一个累计对象快照，完成后使用 Schema 校验并序列化。LLM Service 在服务边界解析并再次校验 JSON，分别返回 `ParsedInputFieldResult` 和 `FilledInputFieldResult` 对象。
@@ -133,7 +135,7 @@ feelfill/
 
 修复对应问题后，应同步删除或更新本节：
 
-- `File[]` 是否能按预期通过扩展消息传输尚未验证；确定协议时优先采用明确、可序列化且有共享类型的 DTO。
+- Side Panel 会在发送消息前把 `File[]` 转换为共享的 `Base64File[]` DTO，Content Script 和 Background 仅传递可序列化数据。
 - 页面字段识别、文件字段提取和原生 DOM 控件填充已形成基础闭环；自定义组件、复杂富文本、Shadow DOM、iframe 和文件控件仍未覆盖。
 - Content React UI 与 `enabled` 动态开关尚未接入。
 - 测试基础设施已经建立；LLM Service 测试位于 `tests/services/llm/index.test.ts`，Side Panel 交互测试位于 `tests/entrypoints/sidepanel/`，共享组件测试位于 `tests/components/`。
@@ -141,6 +143,9 @@ feelfill/
 仓库可能包含用户未提交的修改。不要覆盖、回退或格式化与当前任务无关的改动。
 
 ## 样式约定
+
+- Side Panel 与 Options 通过 `src/styles/theme.css` 共享语义色彩、字体、圆角、阴影和基础交互样式；各入口保留独立 `style.css`。采用暖白背景、白色卡片和松绿色主色，错误使用红色，成功使用绿色，并兼容减少动态效果偏好。
+- Content Script 不引入面向扩展页面的全局主题，避免污染宿主网页；后续 Content UI 的主题应在 Shadow DOM 内单独接入。
 
 - Tailwind CSS 通过 `wxt.config.ts` 中的 `@tailwindcss/vite` 插件启用。
 - Side Panel、Options 和 Content Script 是三个独立构建入口，因此当前各自保留一个 `style.css`。

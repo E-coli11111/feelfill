@@ -58,10 +58,15 @@ export async function parseHTMLField(html: string): Promise<ParsedInputFieldResu
  *
  * @param field Definitions of the webpage fields to extract from the document.
  * @param files The user-provided documents or images to analyze. (base64 encoded)
+ * @param userInstruction Additional user guidance for extracting field values.
  * @returns The message returned by the language model.
  * @throws If the configured provider does not support document parsing.
  */
-export async function parseDocumentField(field: ParsedInputFieldResult, files: Base64File[]): Promise<FilledInputFieldResult> {
+export async function parseDocumentField(
+  field: ParsedInputFieldResult,
+  files: Base64File[],
+  userInstruction = '',
+): Promise<FilledInputFieldResult> {
   const llmConfig = await storage.getLLMConfig();
   if (!llmConfig) {
     throw new Error('LLM configuration is not set');
@@ -72,7 +77,7 @@ export async function parseDocumentField(field: ParsedInputFieldResult, files: B
   }
 
   const llmProvider = await createAuthenticatedLLMProvider(llmConfig);
-  const prompt = buildParseDocumentPrompt(field);
+  const prompt = buildParseDocumentPrompt(field, userInstruction);
   console.log("files:", files);
   // Handle file input
   const attachments = [];

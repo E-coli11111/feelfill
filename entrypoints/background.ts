@@ -33,7 +33,11 @@ export default defineBackground(() => {
       case 'FILL':
         try {
           console.log('Received FILL request with field:', message.field, 'and files:', message.files);
-          const result =await parseDocumentField(message.field, message.files);
+          const result = await parseDocumentField(
+            message.field,
+            message.files,
+            message.userInstruction,
+          );
           return { type: 'FILL', success: true, data: result };
         } catch (error) {
           console.error('Error processing FILL request:', error);

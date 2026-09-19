@@ -17,7 +17,7 @@ import type { LLMAuthMethod, LLMProvider } from '@/src/services/llm/types';
 import { useModelSettings } from './hooks';
 import type { ModelPanelProps } from './types';
 
-const selectClassName = 'h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50';
+const selectClassName = 'h-10 w-full min-w-0 rounded-md border border-input bg-card px-3 text-sm shadow-xs outline-none transition-colors hover:border-ring/60 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50';
 
 /** Displays authenticated model choices and persists the active model. */
 export function ModelPanel({ onRequestAuthentication }: ModelPanelProps) {
@@ -54,7 +54,7 @@ export function ModelPanel({ onRequestAuthentication }: ModelPanelProps) {
       <Card>
         <CardHeader>
           <CardTitle>无法加载模型</CardTitle>
-          <CardDescription role="alert">{error}</CardDescription>
+          <CardDescription role="alert" className="text-destructive">{error}</CardDescription>
         </CardHeader>
         <CardFooter>
           <Button type="button" variant="outline" onClick={() => void reload()}>
@@ -102,7 +102,7 @@ export function ModelPanel({ onRequestAuthentication }: ModelPanelProps) {
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="grid gap-5 md:grid-cols-3">
+      <CardContent className="grid gap-5 xl:grid-cols-3">
         <label className="grid gap-2 text-sm font-medium">
           服务商
           <select
@@ -155,13 +155,13 @@ export function ModelPanel({ onRequestAuthentication }: ModelPanelProps) {
         </label>
 
         {selectedModel?.description && (
-          <p className="text-sm text-muted-foreground md:col-span-3">
+          <p className="rounded-lg border bg-muted/50 p-4 text-sm leading-relaxed text-muted-foreground xl:col-span-3">
             {selectedModel.description}
           </p>
         )}
       </CardContent>
 
-      <CardFooter className="gap-3">
+      <CardFooter className="flex-wrap gap-3">
         <Button
           type="button"
           disabled={disabled}
@@ -171,7 +171,7 @@ export function ModelPanel({ onRequestAuthentication }: ModelPanelProps) {
         </Button>
         <p
           role={status === 'error' ? 'alert' : 'status'}
-          className="text-sm text-muted-foreground"
+          className={`text-sm ${status === 'error' ? 'text-destructive' : 'text-success'}`}
         >
           {status === 'saved' ? '模型设置已保存。' : error}
         </p>

@@ -40,6 +40,7 @@ export function useSidepanel() {
   const [openingSettings, setOpeningSettings] = useState(false);
   const [error, setError] = useState('');
   const [files, setFiles] = useState<File[]>();
+  const [userInstruction, setUserInstruction] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -68,7 +69,10 @@ export function useSidepanel() {
     try {
       await browser.storage.local.set({ enabled: nextEnabled });
       setEnabled(nextEnabled);
-      if (!nextEnabled) setFiles(undefined);
+      if (!nextEnabled) {
+        setFiles(undefined);
+        setUserInstruction('');
+      }
     } catch {
       setError('未能保存开关状态，请重试。');
     } finally {
@@ -118,6 +122,7 @@ export function useSidepanel() {
       const message = {
         type: 'FILL_PAGE',
         files: base64Files,
+        userInstruction: userInstruction.trim(),
       } satisfies ContentRequest;
 
       contentResponse = await browser.tabs.sendMessage(activeTab.id, message);
@@ -133,7 +138,7 @@ export function useSidepanel() {
     } finally {
       setProcessing(false);
     }
-  }, [files]);
+  }, [files, userInstruction]);
 
   return {
     enabled,
@@ -144,9 +149,11 @@ export function useSidepanel() {
     processing,
     saving,
     status: getSidepanelStatus(loading, saving, processing, enabled),
+    userInstruction,
     openSettings,
     processFiles,
     selectFile,
+    setUserInstruction,
     toggleEnabled,
   };
 }

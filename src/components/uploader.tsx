@@ -17,12 +17,12 @@ export default function Uploader({
   text = '选择文件',
 }: UploaderProps) {
   return (
-    <Card className="gap-0 overflow-hidden border-dashed py-0 shadow-none">
+    <Card className="gap-0 overflow-hidden border-dashed border-primary/30 py-0 shadow-none">
       <label
         className={`group flex min-h-[156px] w-full flex-col items-center justify-center gap-2 px-5 py-6 text-center transition-colors focus-within:ring-2 focus-within:ring-ring/40 ${
           disabled
             ? 'cursor-not-allowed bg-muted/50 text-muted-foreground'
-            : 'cursor-pointer bg-card text-muted-foreground hover:bg-accent/50'
+            : 'cursor-pointer bg-accent/30 text-muted-foreground hover:bg-accent/70'
         }`}
       >
         <input
@@ -37,7 +37,7 @@ export default function Uploader({
             event.currentTarget.value = '';
           }}
         />
-        <span className="flex size-10 items-center justify-center rounded-lg border bg-background shadow-xs">
+        <span className="flex size-12 items-center justify-center rounded-lg border border-primary/10 bg-card shadow-xs">
           <UploadCloud aria-hidden="true" className="size-5 text-primary" />
         </span>
         <span className="text-sm font-medium text-foreground group-hover:text-primary">{text}</span>

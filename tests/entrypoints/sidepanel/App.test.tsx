@@ -16,9 +16,13 @@ describe('Side panel', () => {
     const toggle = screen.getByRole('switch', { name: '开启 FeelFill' });
     await waitFor(() => expect(toggle).toBeEnabled());
     expect(toggle).not.toBeChecked();
+    expect(screen.getByRole('heading', { name: '少一点重复，多一点轻松' })).toBeInTheDocument();
     expect(screen.queryByLabelText('点击上传文件')).not.toBeInTheDocument();
     await user.click(toggle);
     expect(await screen.findByLabelText('点击上传文件')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '少一点重复，多一点轻松' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '自定义要求' }));
+    expect(screen.getByRole('textbox', { name: '自定义要求' })).toHaveAccessibleDescription('可选，将作为本次文档解析的补充要求。');
     expect(await fakeBrowser.storage.local.get('enabled')).toEqual({ enabled: true });
     view.unmount();
     render(<App />);
@@ -49,6 +53,10 @@ describe('Side panel', () => {
 
     render(<App />);
     const file = new File(['fixture'], '资料.pdf', { type: 'application/pdf' });
+    await user.click(await screen.findByRole('button', { name: '自定义要求' }));
+    const instruction = await screen.findByRole('textbox', { name: '自定义要求' });
+    await user.type(instruction, '  优先使用护照上的英文姓名。  ');
+    await user.click(screen.getByRole('button', { name: '自定义要求' }));
     await user.upload(await screen.findByLabelText('点击上传文件'), file);
 
     expect(sendToContent).not.toHaveBeenCalled();
@@ -57,6 +65,7 @@ describe('Side panel', () => {
     expect(queryTabs).toHaveBeenCalledWith({ active: true, currentWindow: true });
     expect(sendToContent).toHaveBeenCalledWith(7, {
       type: 'FILL_PAGE',
+      userInstruction: '优先使用护照上的英文姓名。',
       files: [{
         content: 'Zml4dHVyZQ==',
         name: '资料.pdf',
@@ -64,6 +73,41 @@ describe('Side panel', () => {
       }],
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('clears the custom instruction when disabled', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: '自定义要求' }));
+    const instruction = await screen.findByRole('textbox', { name: '自定义要求' });
+    await user.type(instruction, '仅填写必填字段');
+    await user.click(screen.getByRole('switch'));
+    await waitFor(() => expect(screen.getByRole('switch')).toBeEnabled());
+    await user.click(screen.getByRole('switch'));
+
+    const disclosure = await screen.findByRole('button', { name: '自定义要求' });
+    expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    await user.click(disclosure);
+    expect(await screen.findByRole('textbox', { name: '自定义要求' })).toHaveValue('');
+  });
+
+  it('expands with the keyboard and preserves instructions when collapsed', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const disclosure = await screen.findByRole('button', { name: '自定义要求' });
+    expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('textbox', { name: '自定义要求' })).not.toBeInTheDocument();
+    disclosure.focus();
+    await user.keyboard('{Enter}');
+    expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    await user.type(screen.getByRole('textbox', { name: '自定义要求' }), '仅填写必填字段');
+    await user.click(disclosure);
+    expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    expect(disclosure).toHaveTextContent('已添加');
+    expect(screen.queryByRole('textbox', { name: '自定义要求' })).not.toBeInTheDocument();
+    await user.keyboard(' ');
+    expect(screen.getByRole('textbox', { name: '自定义要求' })).toHaveValue('仅填写必填字段');
   });
 
   it('shows an error returned by the content script', async () => {

@@ -15,7 +15,11 @@ describe('content handleMessage', () => {
   });
 
   it('locates fields, extracts values, and fills the current page', async () => {
-    const file = new File(['fixture'], 'profile.txt', { type: 'text/plain' });
+    const file = {
+      content: 'Zml4dHVyZQ==',
+      name: 'profile.txt',
+      type: 'text/plain',
+    };
     const parsedFields = {
       field: {
         姓名: {
@@ -41,7 +45,11 @@ describe('content handleMessage', () => {
         },
       } as never);
 
-    const response = await handleMessage({ type: 'FILL_PAGE', files: [file] });
+    const response = await handleMessage({
+      type: 'FILL_PAGE',
+      files: [file],
+      userInstruction: '优先使用护照上的英文姓名。',
+    });
 
     expect(sendMessage).toHaveBeenCalledTimes(2);
     expect(sendMessage).toHaveBeenNthCalledWith(1, {
@@ -52,6 +60,7 @@ describe('content handleMessage', () => {
       type: 'FILL',
       field: parsedFields,
       files: [file],
+      userInstruction: '优先使用护照上的英文姓名。',
     });
     expect(document.querySelector<HTMLInputElement>('input')?.value).toBe('张三');
     expect(response.success).toBe(true);

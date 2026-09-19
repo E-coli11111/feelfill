@@ -42,7 +42,7 @@ export function OpenaiOAuthPanel({ authorizeMethod }: BaseAuthPanelProps) {
             <Button type="button" onClick={() => setView('browser')}>
               使用浏览器登录
             </Button>
-            <Button type="button" onClick={() => setView('device')}>
+            <Button type="button" variant="outline" onClick={() => setView('device')}>
               使用设备码授权
             </Button>
           </CardFooter>

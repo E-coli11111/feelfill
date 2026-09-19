@@ -1,4 +1,4 @@
-import { Bot, KeyRound } from 'lucide-react';
+import { Bot, KeyRound, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import AuthPanel from '@/src/components/auth';
 import ModelPanel from '@/src/components/model';
@@ -51,10 +51,15 @@ export default function App() {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <div className="px-2 py-1">
-            <p className="font-semibold">FeelFill</p>
-            <p className="text-xs text-muted-foreground">设置</p>
+        <SidebarHeader className="border-b py-5">
+          <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:px-0">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Sparkles aria-hidden="true" className="size-4" />
+            </span>
+            <div className="group-data-[collapsible=icon]:hidden">
+              <p className="text-lg font-semibold tracking-tight">FeelFill</p>
+              <p className="text-xs text-muted-foreground">让填写更轻松</p>
+            </div>
           </div>
         </SidebarHeader>
 
@@ -71,6 +76,7 @@ export default function App() {
                         isActive={activeSection === item.id}
                         aria-current={activeSection === item.id ? 'page' : undefined}
                         tooltip={item.label}
+                        className="h-11 rounded-md data-[active=true]:text-primary"
                         onClick={() => setActiveSection(item.id)}
                       >
                         <item.icon aria-hidden="true" />
@@ -88,16 +94,19 @@ export default function App() {
       </Sidebar>
 
       <SidebarInset>
-        <header className="flex h-14 items-center gap-2 border-b px-4">
+        <header className="flex h-16 items-center gap-3 border-b bg-card/70 px-4 sm:px-6">
           <SidebarTrigger aria-label="切换设置导航" />
           <Separator orientation="vertical" className="h-4" />
-          <span className="text-sm text-muted-foreground">{content.title}</span>
+          <span className="text-sm text-muted-foreground">设置</span>
+          <span aria-hidden="true" className="text-border">/</span>
+          <span className="text-sm font-medium">{content.title}</span>
         </header>
 
-        <section aria-labelledby="settings-title" className="flex-1 p-8">
-          <header className="mb-6">
-            <h1 id="settings-title" className="text-2xl font-semibold">{content.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+        <section aria-labelledby="settings-title" className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 sm:px-10 sm:py-12">
+          <header className="mb-8">
+            <p className="mb-3 text-xs font-medium tracking-widest text-primary">FEELFILL / 偏好设置</p>
+            <h1 id="settings-title" className="text-3xl font-semibold tracking-tight">{content.title}</h1>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               {content.description}
             </p>
           </header>

@@ -1,0 +1,84 @@
+/* Shared tokens for extension-owned pages; do not inject into host pages. */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--primary);
+  --color-destructive: #b83e3e;
+  --color-success: #21634d;
+  --color-border: var(--border);
+  --color-input: #cbd5cf;
+  --color-ring: #398268;
+  --color-sidebar: #eef2ec;
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--primary);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: #398268;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 2px 8px #263f3010, 0 12px 32px #263f3005;
+}
+
+:root {
+  --background: #f7f8f4;
+  --foreground: #263c32;
+  --card: #ffffff;
+  --primary: #28634e;
+  --muted: #eff3ee;
+  --muted-foreground: #66756b;
+  --accent: #e7f0e8;
+  --border: #dee5dd;
+  --sidebar-border: var(--border);
+  --sidebar-accent: #dce9df;
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply m-0 bg-background font-sans text-sm text-foreground antialiased;
+    line-height: 1.6;
+  }
+
+  button:not(:disabled), [role="switch"]:not(:disabled), select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: #dce9df;
+    color: #204f3e;
+  }
+
+  a {
+    @apply text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

@@ -11,6 +11,8 @@ it('allows selecting the same file again and respects disabled state', async () 
   const file = new File(['fixture'], 'example.pdf', { type: 'application/pdf' });
   const view = render(<Uploader accept=".pdf" onChange={onChange} />);
   const input = screen.getByLabelText('选择文件');
+  await user.tab();
+  expect(input).toHaveFocus();
   await user.upload(input, file);
   await user.upload(input, file);
   expect(onChange).toHaveBeenCalledTimes(2);
