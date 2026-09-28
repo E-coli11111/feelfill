@@ -23,6 +23,7 @@ const filledInputFieldSchema = z.object({
   value: z.string(),
   found: z.boolean(),
   evidence: z.string(),
+  confidence: z.number().min(0).max(1),
 });
 
 /** Schema for webpage fields identified by the language model. */

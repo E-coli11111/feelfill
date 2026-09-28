@@ -118,6 +118,7 @@ export interface FilledInputField {
   value: string;
   found: boolean;
   evidence: string;
+  confidence: number;
 }
 
 /** Collection of fillable fields identified in webpage HTML. */

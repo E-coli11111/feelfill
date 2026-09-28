@@ -142,8 +142,7 @@ ${requestedFields}
 5. 找到字段时，将 found 设为 true，value 填写适合网页控件的简洁值，evidence 填写能直接支持该值的最短原文片段。
 6. 未找到或存在多个无法可靠判断的候选值时，将 found 设为 false，并将 value 和 evidence 都设为空字符串。
 7. 保留姓名、编号、账号等原始字符；除非 description 明确要求，否则不要擅自翻译、缩写或改写。
-8. 对日期、数字、选项等进行格式转换时，只能在含义明确且不会改变原值的情况下转换；无法确定时保留文档原文。
-9. 对于任何字段，包括长文本、图片或表格内容，value 必须和原文档**完全一致**，包括特殊字符和换行符，**不得进行概括，总结，翻译**。
+8. 对于任何字段，包括长文本、图片或表格内容，value 必须和原文档**完全一致**，包括特殊字符和换行符，**不得进行概括，总结，翻译**。
 ${userInstructionSection}
 
 ## 示例
@@ -168,12 +167,14 @@ ${userInstructionSection}
     "姓名": {
       "value": "张三",
       "found": true,
-      "evidence": "申请人：张三"
+      "evidence": "申请人：张三",
+      "confidence": 0.95
     },
     "联系电话": {
       "value": "",
       "found": false,
-      "evidence": ""
+      "evidence": "",
+      "confidence": 0.0
     }
   }
 }
@@ -188,7 +189,8 @@ ${userInstructionSection}
     "<待提取字段名，必须与输入完全一致>": {
       "value": "<提取到的值；未找到时为空字符串>",
       "found": false,
-      "evidence": "<支持该值的最短原文；未找到时为空字符串>"
+      "evidence": "<支持该值的最短原文；未找到时为空字符串>",
+      "confidence": <字段值置信度，范围 0.0~1.0，越明确指出时越高，越不确定或需要推理时越低；未找到字段时，即found为false时，设为 0.0>
     }
   }
 }`;

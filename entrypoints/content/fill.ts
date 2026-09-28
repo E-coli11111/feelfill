@@ -214,6 +214,15 @@ export function fillResultToWebsite(
       continue;
     }
 
+    // TODO: Add customize confidence threshold for each field type.
+    if (fieldData.confidence < 0.7) {
+      result.skipped.push({
+        field: fieldName,
+        reason: `字段值置信度过低：${fieldData.confidence.toFixed(2)}`,
+      });
+      continue;
+    }
+
     try {
       fillField(fieldSchema, fieldData.value);
       result.filled.push(fieldName);
